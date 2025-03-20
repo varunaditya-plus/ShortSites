@@ -1,0 +1,72 @@
+body {
+    background-color: #f8f9fa;
+}
+
+#html-editor, #css-editor, #js-editor {
+    border: 1px solid #E6EAED;
+    border-top: none;
+    z-index: 3;
+    position: relative;
+    height: 100%;
+}
+
+#html-editor-container, #css-editor-container, #js-editor-container {
+    height: 100%;
+}
+
+@media (max-width: 767px) {
+    #html-editor-container, #css-editor-container, #js-editor-container {
+        height: 40vh;
+    }
+}
+
+.tab {
+    padding: 5px 20px;
+    border: 1px solid #E6EAED;
+    border-radius: 0;
+    color: #8A9199;
+    background-color: #F8F9FA;
+    font-size: 14px;
+    margin-left: -1px;
+}
+
+.tab:not(.no-hover):not(.tab.active):hover {
+    background-color: #f5f7f7;
+    color: #6a6d76;
+    cursor: pointer;
+}
+
+.tab.active {
+    background-color: #FCFCFC;
+    color: #5C6165;
+    border-bottom: none;
+    position: relative;
+    z-index: 4;
+    margin-top: 1px;
+    margin-bottom: -1px;
+}
+
+.editor-container {
+    display: block;
+}
+
+.hidden {
+    display: none;
+}
+
+#preview-frame {
+    border: 1px solid #E6EAED;
+}
+
+.bkyl {
+    background-color: #ffaa33;
+}
+
+.dol-option { border: 1px solid #EEE; color: #c7c7c7; }
+.dol-option:not(.dol-selected):hover { color: #aeb0b4 }
+.dol-selected { background-color: #ffffff; color: #000; border: 1px solid #c3c4ca10; }
+.dol-container { background-color: #f2f2f2; }
+.bkmdl { background-color: #fcfcfc; border: 1px solid #E6EAED; }
+.h1mdl, .h2mdl { color: #000; }
+.closemdl { color: #000; }
+.closemdl:hover { color: #6c727f; }

@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Shortsite</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.12/codemirror.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/theme/ayu-dark.min.css" />
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.12/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.12/mode/htmlmixed/htmlmixed.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.12/mode/xml/xml.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.12/mode/javascript/javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.12/mode/css/css.min.js"></script>
+    
+    <style>
+        body {
+            background-color: #0b0e14;
+        }
+
+        #html-editor, #css-editor, #js-editor {
+            border: 1px solid #1E232B;
+            border-top: none;
+            z-index: 3;
+            position: relative;
+            height: 100%;
+        }
+
+        #html-editor-container, #css-editor-container, #js-editor-container {
+            height: 100%;
+        }
+
+        @media (max-width: 767px) {
+            #html-editor-container, #css-editor-container, #js-editor-container {
+                height: 40vh;
+            }
+        }
+
+        .tab {
+            padding: 5px 20px;
+            border: 1px solid #1E232B;
+            border-radius: 0;
+            color: #565b66;
+            background-color: #0b0e14;
+            font-size: 14px;
+            margin-left: -1px;
+        }
+
+        .tab:not(.no-hover):not(.tab.active):hover {
+            background-color: #0D0F15;
+            color: #6a6d76;
+            cursor: pointer;
+        }
+
+        .tab.active {
+            background-color: #0E1017;
+            color: #bfbdb6;
+            border-bottom: none;
+            position: relative;
+            z-index: 4;
+            margin-top: 1px;
+            margin-bottom: -1px;
+        }
+
+        .editor-container {
+            display: block;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        #preview-frame {
+            border: 1px solid #1E232B;
+        }
+
+        .bkyl {
+            background-color: #E6B450;
+        }
+
+        select {
+            padding: 10px;
+            padding-right: 30px;
+            -moz-appearance: none;
+            -webkit-appearance: none;
+            appearance: none;
+            background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23E6B450%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E');
+            background-repeat: no-repeat, repeat;
+            background-position: right .7em top 50%, 0 0;
+            background-size: .65em auto, 100%;
+        }
+
+        .dol-option { border: 1px solid #131721; }
+        .dol-option:not(.dol-selected):hover { color: #6b7280 }
+        .dol-container { background-color: #131721; }
+        .dol-selected { background-color: #242c3c; color: #c3c4ca; border: 1px solid #c3c4ca10; }
+        .bkmdl { background-color: #0C1017; border: 1px solid #1E232B; }
+        .h1mdl, .h2mdl { color: #fff; }
+        .closemdl { color: #fff; }
+        .closemdl:hover { color: #6b7280; }
+
+        #message-modal {
+            background-color: #0E1017;
+            border: 1px solid #1E232B;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0px 10px 20px rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+        }
+
+        #message-modal h1 {
+            font-size: 1.5rem;
+            margin-bottom: 10px;
+            margin-top: 10px;
+        }
+
+        #message-modal p {
+            font-size: 1.2rem;
+            margin-bottom: 10px;
+        }
+
+        /* Make CodeMirror fill the container */
+        .CodeMirror {
+            height: 100%;
+        }
+
+    </style>
+</head>
+<body class="flex flex-col md:flex-row font-sans m-0 min-h-screen text-gray-900">
+    <main class="flex flex-col w-full">
+        <div class="flex flex-col md:flex-row flex-grow w-full">
+            <section class="flex-1 flex flex-col p-5 md:pr-2 pb-3 md:pb-5 bg-background">
+                <ul class="flex flex-row bkyl">
+                    <li>
+                        <button onclick="showTab('html')" id="html-tab" class="tab active" style="margin-left: 0; padding-left: 19px;">
+                            <!-- HTML Icon -->
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" class="w-4 h-4 inline-block mr-1 mb-0.5"><path fill="#E65100" d="m4 4 2 22 10 2 10-2 2-22Zm19.72 7H11.28l.29 3h11.86l-.802 9.335L15.99 25l-6.635-1.646L8.93 19h3.02l.19 2 3.86.77 3.84-.77.29-4H8.84L8 8h16Z"/></svg>
+                            index.html
+                        </button>
+                    </li>
+                    <li>
+                        <button onclick="showTab('css')" id="css-tab" class="tab">
+                            <!-- CSS Icon -->
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" class="w-4 h-4 inline-block mr-1 mb-0.5"><path fill="#42a5f5" d="m29.18 4-3.57 18.36-.33 1.64-4.74 1.57-3.28 1.09L13.21 28 2.87 24.05 4.05 18h4.2l-.44 2.85 6.34 2.42.78-.26 6.52-2.16.17-.83.79-4.02H4.44l.74-3.76.05-.24h17.96l.78-4H6l.78-4h22.4z"/></svg>
+                            styles.css
+                        </button>
+                    </li>
+                    <li>
+                        <button onclick="showTab('js')" id="js-tab" class="tab">
+                            <!-- JS Icon -->
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" class="w-4 h-4 inline-block mr-1 mb-0.5"><path fill="#ffca28" d="M2 2h12v12H2V2m3.153 10.027c.267.567.794 1.033 1.694 1.033 1 0 1.686-.533 1.686-1.7V7.507H7.4v3.827c0 .573-.233.72-.6.72-.387 0-.547-.267-.727-.58l-.92.553m3.987-.12c.333.653 1.007 1.153 2.06 1.153 1.067 0 1.867-.553 1.867-1.573 0-.94-.54-1.36-1.5-1.773l-.28-.12c-.487-.207-.694-.347-.694-.68 0-.274.207-.487.54-.487.32 0 .534.14.727.487l.873-.58c-.366-.64-.886-.887-1.6-.887-1.006 0-1.653.64-1.653 1.487 0 .92.54 1.353 1.353 1.7l.28.12c.52.226.827.366.827.753 0 .32-.3.553-.767.553-.553 0-.873-.286-1.113-.686z"/></svg>
+                            script.js
+                        </button>
+                    </li>
+                    <li class="flex-grow tab no-hover"></li>
+                    <li>
+                        <button onclick="alert('AI has not yet been added.')" class="tab" style="padding: 5px 8px; height: 100%;">
+                            <!-- Star Icon -->
+                            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="#9b56f5" viewBox="0 0 256 256" class="w-4 h-4 inline-block mb-0.5" style="filter: drop-shadow(0 0 5px #9b56f5);"><path d="M197.58,129.06,146,110l-19-51.62a15.92,15.92,0,0,0-29.88,0L78,110l-51.62,19a15.92,15.92,0,0,0,0,29.88L78,178l19,51.62a15.92,15.92,0,0,0,29.88,0L146,178l51.62-19a15.92,15.92,0,0,0,0-29.88ZM137,164.22a8,8,0,0,0-4.74,4.74L112,223.85,91.78,169A8,8,0,0,0,87,164.22L32.15,144,87,123.78A8,8,0,0,0,91.78,119L112,64.15,132.22,119a8,8,0,0,0,4.74,4.74L191.85,144ZM144,40a8,8,0,0,1,8-8h16V16a8,8,0,0,1,16,0V32h16a8,8,0,0,1,0,16H184V64a8,8,0,0,1-16,0V48H152A8,8,0,0,1,144,40ZM248,88a8,8,0,0,1-8,8h-8v8a8,8,0,0,1-16,0V96h-8a8,8,0,0,1,0-16h8V72a8,8,0,0,1,16,0v8h8A8,8,0,0,1,248,88Z"></path></svg>
+                        </button>
+                    </li>
+                    <li>
+                        <button onclick="window.open('https://phosphoricons.com/', '_blank')" class="tab" style="padding: 5px 8px; height: 100%;">
+                            <!-- Icon Link -->
+                            <svg width="33" height="44" viewBox="0 0 33 44" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 inline-block mb-0.5"><path d="M17.1026 0.0502575H1.49434C1.19446 0.0502575 0.906859 0.16938 0.694815 0.381425C0.48277 0.59347 0.363647 0.881056 0.363647 1.18093V28.9189C0.367464 32.8948 1.94793 36.707 4.75845 39.5193C7.56897 42.3316 11.3801 43.9145 15.3561 43.9209C15.5045 43.9209 15.6516 43.8917 15.7887 43.8348C15.9259 43.778 16.0506 43.6947 16.1556 43.5897C16.2606 43.4847 16.3438 43.3601 16.4007 43.2229C16.4575 43.0857 16.4867 42.9387 16.4867 42.7902V30.0495H17.093C19.0854 30.0852 21.0649 29.7236 22.916 28.9858C24.7671 28.2481 26.4526 27.1489 27.8742 25.7525C29.2959 24.3561 30.425 22.6905 31.1959 20.8529C31.9667 19.0153 32.3637 17.0426 32.3637 15.0499C32.3637 13.0572 31.9667 11.0845 31.1959 9.24687C30.425 7.40928 29.2959 5.74366 27.8742 4.34728C26.4526 2.95089 24.7671 1.85173 22.916 1.11395C21.0649 0.376168 19.0854 0.0145723 17.093 0.0502575H17.1026ZM14.2157 41.6114C11.2443 41.3412 8.46159 40.0378 6.35178 37.928C4.24197 35.8181 2.93856 33.0354 2.66832 30.064H14.2157V41.6114ZM14.2157 24.1315L3.32749 2.31161H14.235L14.2157 24.1315ZM17.1026 27.7882H16.4964V2.31161H17.1026C18.7962 2.27869 20.4794 2.58386 22.0537 3.20923C23.628 3.8346 25.0618 4.76763 26.2712 5.95375C27.4806 7.13987 28.4413 8.55527 29.0972 10.1171C29.753 11.679 30.0908 13.3559 30.0908 15.0499C30.0908 16.7439 29.753 18.4208 29.0972 19.9827C28.4413 21.5445 27.4806 22.9599 26.2712 24.146C25.0618 25.3321 23.628 26.2652 22.0537 26.8906C20.4794 27.5159 18.7962 27.8211 17.1026 27.7882Z" fill="#C4E456"></path></svg>
+                        </button>
+                    </li>
+                    <li>
+                        <button onclick="showModal()" class="tab" style="padding: 5px 8px; height: 100%;">
+                            <!-- Gear Icon -->
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" class="w-4 h-4 inline-block mb-0.5" viewBox="0 0 24 24"><path d="M0 0h24v24H0V0z"/><path fill="#42a5f5" d="M19.43 12.98c.04-.32.07-.64.07-.98 0-.34-.03-.66-.07-.98l2.11-1.65c.19-.15.24-.42.12-.64l-2-3.46a.5.5 0 0 0-.61-.22l-2.49 1c-.52-.4-1.08-.73-1.69-.98l-.38-2.65A.488.488 0 0 0 14 2h-4c-.25 0-.46.18-.49.42l-.38 2.65c-.61.25-1.17.59-1.69.98l-2.49-1a.566.566 0 0 0-.18-.03c-.17 0-.34.09-.43.25l-2 3.46c-.13.22-.07.49.12.64l2.11 1.65c-.04.32-.07.65-.07.98 0 .33.03.66.07.98l-2.11 1.65c-.19.15-.24.42-.12.64l2 3.46a.5.5 0 0 0 .61.22l2.49-1c.52.4 1.08.73 1.69.98l.38 2.65c.03.24.24.42.49.42h4c.25 0 .46-.18.49-.42l.38-2.65c.61-.25 1.17-.59 1.69-.98l2.49 1c.06.02.12.03.18.03.17 0 .34-.09.43-.25l2-3.46c.12-.22.07-.49-.12-.64l-2.11-1.65zm-1.98-1.71c.04.31.05.52.05.73 0 .21-.02.43-.05.73l-.14 1.13.89.7 1.08.84-.7 1.21-1.27-.51-1.04-.42-.9.68c-.43.32-.84.56-1.25.73l-1.06.43-.16 1.13-.2 1.35h-1.4l-.19-1.35-.16-1.13-1.06-.43c-.43-.18-.83-.41-1.23-.71l-.91-.7-1.06.43-1.27.51-.7-1.21 1.08-.84.89-.7.14 1.13c.03.31.05.54.05.74s-.02.43-.05.73l-.14 1.13-.89.7-1.08.84.7 1.21 1.27-.51 1.04-.42.9.68c.43.32.84.56 1.25.73l1.06.43.16 1.13.2 1.35h1.39l.19-1.35.16-1.13 1.06-.43c.43-.18.83-.41 1.23-.71l.91-.7 1.06.43 1.27.51.7-1.21-1.07.85-.89.7.14 1.13zM12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm0 6c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z"/></svg>
+                        </button>
+                    </li>
+                </ul>
+
+                <!-- HTML Editor -->
+                <div id="html-editor-container" class="editor-container">
+                    <div id="html-editor" class="w-full h-48 md:h-64 border border-input"></div>
+                </div>
+
+                <!-- CSS Editor -->
+                <div id="css-editor-container" class="editor-container hidden">
+                    <div id="css-editor" class="w-full h-48 md:h-64 border border-input"></div>
+                </div>
+
+                <!-- JS Editor -->
+                <div id="js-editor-container" class="editor-container hidden">
+                    <div id="js-editor" class="w-full h-48 md:h-64 border border-input"></div>
+                </div>
+            </section>
+
+            <section id="preview" class="flex-1 bg-muted md:w-1/2 pt-3 p-5 md:pl-2 md:pt-5">
+                <iframe id="preview-frame" class="w-full h-[40vh] md:h-[100%] border-none bg-white shadow-md" title="Live Preview"></iframe>
+            </section>
+        </div>
+        <div class="flex justify-center p-5 bg-background pt-0">
+            <button onclick="saveSite()" class="bg-[#E6B450] hover:bg-[#E6A030] text-[#0b0e14] font-semibold py-2 px-4 rounded-md transition-colors duration-200 flex items-center space-x-2">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4">
+                    <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                    <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                    <polyline points="7 3 7 8 15 8"></polyline>
+                </svg>
+                <span>Save</span>
+            </button>
+        </div>
+    </main>
+
+    <div id="modal" class="bkmdl text-white p-4 inline-block w-1/2" style="top: 50%; left: 50%; transform: translate(-50%, -50%); position: absolute; display:none; z-index: 9999;">
+        <h1 class="text-center text-xl h1mdl">Settings</h1>
+        <button onclick="document.getElementById('modal').style.display = 'none'" class="absolute top-3.5 right-5 p-1 closemdl">✕</button>
+
+        <h2 class="text-md mb-0.5 h2mdl">Theme</h2>
+        <div class="text-black transition-colors duration-300" id="theme">
+            <div class="inline-flex h-9 items-baseline justify-start dol-container p-1 w-full" style="gap: 3px;">
+                <button type="button" class="dol-option group inline-flex w-full items-center justify-center py-2 text-xs font-semibold text-gray-700 hover:stroke-blue-950 px-3" id="light-mode">
+                    <div>Light</div>
+                </button>
+                <button type="button" class="dol-option dol-selected group inline-flex w-full items-center justify-center py-2 text-xs font-semibold px-3" id="dark-mode">
+                    <div>Dark</div>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="message-modal" class="bkmdl text-white p-4 inline-block w-1/2" style="top: 50%; left: 50%; transform: translate(-50%, -50%); position: absolute; display:none; z-index: 9999;">
+        <h1 id="message-title" class="text-center text-xl h1mdl"></h1>
+        <p id="message-content" class="text-center"></p>
+        <button onclick="hideMessageModal()" class="absolute top-3.5 right-5 p-1 closemdl">✕</button>
+    </div>
+
+    <script>
+        let htmlEditor, cssEditor, jsEditor;
+
+        document.addEventListener("DOMContentLoaded", function() {
+            // Initialize CodeMirror editors
+            const commonOptions = {
+                lineNumbers: true,
+                theme: 'ayu-dark',
+                tabSize: 2,
+                indentWithTabs: false,
+                styleActiveLine: true,
+                matchBrackets: true,
+            };
+
+            htmlEditor = CodeMirror(document.getElementById('html-editor'), {
+                ...commonOptions,
+                value: '<!DOCTYPE html>\n<html lang="en">\n<head>\n    <meta charset="UTF-8">\n    <meta name="viewport" content="width=device-width, initial-scale=1.0">\n    <title>Untitled ShortSite</title>\n</head>\n<body>\n    <h1>Write your html here</h1>\n    <!-- Add more HTML here -->\n</body>\n</html>',
+                mode: 'htmlmixed'
+            });
+
+            cssEditor = CodeMirror(document.getElementById('css-editor'), {
+                ...commonOptions,
+                value: `body {\n    background-color: #0E1017;\n    color: #fff;\n    font-family: Arial, Helvetica, sans-serif;\n    text-align: center;\n}\n\n/* Add more CSS here... */`,
+                mode: 'css'
+            });
+
+            jsEditor = CodeMirror(document.getElementById('js-editor'), {
+                ...commonOptions,
+                value: '// Write your JavaScript here',
+                mode: 'javascript'
+            });
+
+            function updatePreview() {
+                const html = htmlEditor.getValue();
+                const css = `<style>${cssEditor.getValue()}</style>`;
+                const js = `<script>${jsEditor.getValue()}<\/script>`;
+                const content = `
+                    <!DOCTYPE html>
+                    <html lang="en">
+                    <head>
+                        <meta charset="UTF-8">
+                        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                        <title>Preview</title>
+                        ${css}
+                    </head>
+                    <body>
+                        ${html}
+                        ${js}
+                    </body>
+                    </html>
+                `;
+                const previewFrame = document.getElementById('preview-frame');
+                const previewDocument = previewFrame.contentDocument || previewFrame.contentWindow.document;
+                previewDocument.open();
+                previewDocument.write(content);
+                previewDocument.close();
+            }
+
+            htmlEditor.on("change", updatePreview);
+            cssEditor.on("change", updatePreview);
+            jsEditor.on("change", updatePreview);
+
+            updatePreview();
+
+            window.saveSite = function () {
+                const html = htmlEditor.getValue();
+                const css = cssEditor.getValue();
+                const js = jsEditor.getValue();
+
+                const formData = new URLSearchParams();
+                formData.append('html', html);
+                formData.append('css', css);
+                formData.append('js', js);
+
+                fetch('/uploadsite', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: formData,
+                })
+                .then((response) => response.json())
+                .then((data) => {
+                    if (data.error) {
+                        showMessageModal('Error', 'An error occurred while saving your ShortSite.');
+                    } else {
+                        showMessageModal('Success', `Your ShortSite has been saved! Visit it at: <a href="${data.link}" target="_blank" class="text-blue-400 underline">${data.link}</a>`);
+                    }
+                });
+            };
+
+            function showMessageModal(title, content) {
+                const modal = document.getElementById('message-modal');
+                const modalTitle = document.getElementById('message-title');
+                const modalContent = document.getElementById('message-content');
+
+                modalTitle.textContent = title;
+                modalContent.innerHTML = content;
+                modal.style.display = 'block';
+            }
+
+            window.hideMessageModal = function() {
+                const modal = document.getElementById('message-modal');
+                modal.style.display = 'none';
+            }
+
+            // Tab switch logic
+            window.showTab = function(editor) {
+                document.querySelectorAll('.editor-container').forEach(container => container.classList.add('hidden'));
+                document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+
+                document.getElementById(editor + '-editor-container').classList.remove('hidden');
+                document.getElementById(editor + '-tab').classList.add('active');
+                
+                // Refresh CodeMirror to avoid display issues when switching tabs
+                // (Codemirror refreshes when visible)
+                if (editor === 'html') htmlEditor.refresh();
+                if (editor === 'css') cssEditor.refresh();
+                if (editor === 'js') jsEditor.refresh();
+            }
+
+            window.showModal = function() {
+                document.getElementById('modal').style.display = 'block';
+            }
+
+            // Theme switching example:
+            // Light and dark themes can be changed by swapping the theme class in editors:
+            const lightModeBtn = document.getElementById('light-mode');
+            const darkModeBtn = document.getElementById('dark-mode');
+
+            lightModeBtn.addEventListener('click', () => {
+                htmlEditor.setOption('theme', 'default');
+                cssEditor.setOption('theme', 'default');
+                jsEditor.setOption('theme', 'default');
+                lightModeBtn.classList.add('dol-selected');
+                darkModeBtn.classList.remove('dol-selected');
+            });
+
+            darkModeBtn.addEventListener('click', () => {
+                htmlEditor.setOption('theme', 'ayu-dark');
+                cssEditor.setOption('theme', 'ayu-dark');
+                jsEditor.setOption('theme', 'ayu-dark');
+                darkModeBtn.classList.add('dol-selected');
+                lightModeBtn.classList.remove('dol-selected');
+            });
+        });
+    </script>
+</body>
+</html>
