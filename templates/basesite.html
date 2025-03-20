@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ShortSite</title>
+    <link rel="stylesheet" href="/static/base.css">
+</head>
+<body>
+    <div id="site-content">{{ site_content|safe }}</div>
+    
+    <button id="edit-button" title="Edit this site">✏️</button>
+    
+    <div id="access-modal">
+        <div class="modal-content">
+            <h2>Access Required</h2>
+            <p>Enter the access code to edit this site:</p>
+            <input id="access-code" placeholder="Access code" autocomplete="off">
+            <div class="modal-buttons">
+                <button id="submit-code">Submit</button>
+                <button class="cancel" id="cancel-modal">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="unauthorized-modal">
+        <div class="modal-content">
+            <h2>Unauthorized</h2>
+            <p>You are not authorized to edit this site.</p>
+            <div class="modal-buttons">
+                <button class="cancel" id="close-unauthorized">Close</button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        const siteCode = window.location.pathname.split('/').pop();
+        
+        fetch(`/check_auth/${siteCode}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.authorized) {
+                    document.getElementById('edit-button').addEventListener('click', function() {
+                        window.location.href = `/edit/${siteCode}`;
+                    });
+                } else {
+                    document.getElementById('edit-button').addEventListener('click', function() {
+                        document.getElementById('access-modal').style.display = 'flex';
+                    });
+                }
+            });
+        
+        document.getElementById('close-unauthorized').addEventListener('click', function() {
+            document.getElementById('unauthorized-modal').style.display = 'none';
+        });
+        
+        document.getElementById('cancel-modal').addEventListener('click', function() {
+            document.getElementById('access-modal').style.display = 'none';
+        });
+        
+        document.getElementById('submit-code').addEventListener('click', function() {
+            const accessCode = document.getElementById('access-code').value;
+            if (accessCode.trim() === '') {
+                alert('Please enter an access code');
+                return;
+            }
+            
+            fetch(`/verify_code/${siteCode}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ accessCode: accessCode })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    window.location.href = `/edit/${siteCode}?code=${encodeURIComponent(accessCode)}`;
+                } else {
+                    document.getElementById('access-modal').style.display = 'none';
+                    document.getElementById('unauthorized-modal').style.display = 'flex';
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred. Please try again.');
+            });
+        });
+        
+        document.getElementById('access-code').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                document.getElementById('submit-code').click();
+            }
+        });
+    </script>
+</body>
+</html>

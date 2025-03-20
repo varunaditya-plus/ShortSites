@@ -15,123 +15,84 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.12/mode/javascript/javascript.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.12/mode/css/css.min.js"></script>
     
+    <link rel="stylesheet" href="/static/editor.css">
     <style>
-        body {
-            background-color: #0b0e14;
+        /* AI Chat Formatting Styles */
+        .code-block {
+            background-color: #1f2937;
+            border-radius: 4px;
+            margin: 10px 0;
+            overflow: hidden;
+            width: 100%;
+            max-width: calc(100% - 20px);
+            margin: 10px auto;
         }
-
-        #html-editor, #css-editor, #js-editor {
-            border: 1px solid #1E232B;
-            border-top: none;
-            z-index: 3;
-            position: relative;
-            height: 100%;
+        .code-header {
+            background-color: #374151;
+            color: #e5e7eb;
+            font-size: 0.8rem;
+            padding: 4px 10px;
+            font-family: monospace;
+            border-bottom: 1px solid #4b5563;
         }
-
-        #html-editor-container, #css-editor-container, #js-editor-container {
-            height: 100%;
-        }
-
-        @media (max-width: 767px) {
-            #html-editor-container, #css-editor-container, #js-editor-container {
-                height: 40vh;
-            }
-        }
-
-        .tab {
-            padding: 5px 20px;
-            border: 1px solid #1E232B;
-            border-radius: 0;
-            color: #565b66;
-            background-color: #0b0e14;
-            font-size: 14px;
-            margin-left: -1px;
-        }
-
-        .tab:not(.no-hover):not(.tab.active):hover {
-            background-color: #0D0F15;
-            color: #6a6d76;
-            cursor: pointer;
-        }
-
-        .tab.active {
-            background-color: #0E1017;
-            color: #bfbdb6;
-            border-bottom: none;
-            position: relative;
-            z-index: 4;
-            margin-top: 1px;
-            margin-bottom: -1px;
-        }
-
-        .editor-container {
-            display: block;
-        }
-
-        .hidden {
-            display: none;
-        }
-
-        #preview-frame {
-            border: 1px solid #1E232B;
-        }
-
-        .bkyl {
-            background-color: #E6B450;
-        }
-
-        select {
+        .code-block pre {
+            margin: 0;
             padding: 10px;
-            padding-right: 30px;
-            -moz-appearance: none;
-            -webkit-appearance: none;
-            appearance: none;
-            background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23E6B450%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E');
-            background-repeat: no-repeat, repeat;
-            background-position: right .7em top 50%, 0 0;
-            background-size: .65em auto, 100%;
+            overflow-x: auto;
+            font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
+            font-size: 0.9rem;
+            line-height: 1.5;
+            background-color: #1f2937;
         }
-
-        .dol-option { border: 1px solid #131721; }
-        .dol-option:not(.dol-selected):hover { color: #6b7280 }
-        .dol-container { background-color: #131721; }
-        .dol-selected { background-color: #242c3c; color: #c3c4ca; border: 1px solid #c3c4ca10; }
-        .bkmdl { background-color: #0C1017; border: 1px solid #1E232B; }
-        .h1mdl, .h2mdl { color: #fff; }
-        .closemdl { color: #fff; }
-        .closemdl:hover { color: #6b7280; }
-
-        #message-modal {
-            background-color: #0E1017;
-            border: 1px solid #1E232B;
-            padding: 20px;
-            text-align: center;
-            box-shadow: 0px 10px 20px rgba(0, 0, 0, 0.2);
-            border-radius: 10px;
+        .code-block code {
+            white-space: pre-wrap;
+            word-break: break-all;
         }
-
-        #message-modal h1 {
-            font-size: 1.5rem;
-            margin-bottom: 10px;
-            margin-top: 10px;
+        .inline-code {
+            background-color: #374151;
+            border-radius: 3px;
+            padding: 2px 4px;
+            font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
+            font-size: 0.9em;
+            color: #e5e7eb;
         }
-
-        #message-modal p {
-            font-size: 1.2rem;
-            margin-bottom: 10px;
-        }
-
-        /* Make CodeMirror fill the container */
-        .CodeMirror {
-            height: 100%;
-        }
-
+        
+        /* Syntax highlighting colors */
+        .language-html .keyword,
+        .language-xml .keyword { color: #c678dd; }
+        .language-html .tag,
+        .language-xml .tag { color: #e06c75; }
+        .language-html .attr,
+        .language-xml .attr { color: #d19a66; }
+        .language-html .string,
+        .language-xml .string { color: #98c379; }
+        .language-html .comment,
+        .language-xml .comment { color: #7f848e; font-style: italic; }
+        
+        .language-css .property { color: #61afef; }
+        .language-css .selector { color: #e06c75; }
+        .language-css .value { color: #98c379; }
+        .language-css .punctuation { color: #abb2bf; }
+        .language-css .comment { color: #7f848e; font-style: italic; }
+        
+        .language-javascript .keyword,
+        .language-js .keyword { color: #c678dd; }
+        .language-javascript .string,
+        .language-js .string { color: #98c379; }
+        .language-javascript .number,
+        .language-js .number { color: #d19a66; }
+        .language-javascript .function,
+        .language-js .function { color: #61afef; }
+        .language-javascript .comment,
+        .language-js .comment { color: #7f848e; font-style: italic; }
+        
+        .language-plaintext { color: #abb2bf; }
     </style>
 </head>
-<body class="flex flex-col md:flex-row font-sans m-0 min-h-screen text-gray-900">
+<body class="flex flex-col md:flex-row font-sans m-0 min-h-screen text-zinc-500 bg-zinc-950">
     <main class="flex flex-col w-full">
         <div class="flex flex-col md:flex-row flex-grow w-full">
-            <section class="flex-1 flex flex-col p-5 md:pr-2 pb-3 md:pb-5 bg-background">
+            <section class="flex-1 flex flex-col p-5 md:pr-2 pb-3 bg-background">
                 <ul class="flex flex-row bkyl">
                     <li>
                         <button onclick="showTab('html')" id="html-tab" class="tab active" style="margin-left: 0; padding-left: 19px;">
@@ -155,24 +116,6 @@
                         </button>
                     </li>
                     <li class="flex-grow tab no-hover"></li>
-                    <li>
-                        <button onclick="alert('AI has not yet been added.')" class="tab" style="padding: 5px 8px; height: 100%;">
-                            <!-- Star Icon -->
-                            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="#9b56f5" viewBox="0 0 256 256" class="w-4 h-4 inline-block mb-0.5" style="filter: drop-shadow(0 0 5px #9b56f5);"><path d="M197.58,129.06,146,110l-19-51.62a15.92,15.92,0,0,0-29.88,0L78,110l-51.62,19a15.92,15.92,0,0,0,0,29.88L78,178l19,51.62a15.92,15.92,0,0,0,29.88,0L146,178l51.62-19a15.92,15.92,0,0,0,0-29.88ZM137,164.22a8,8,0,0,0-4.74,4.74L112,223.85,91.78,169A8,8,0,0,0,87,164.22L32.15,144,87,123.78A8,8,0,0,0,91.78,119L112,64.15,132.22,119a8,8,0,0,0,4.74,4.74L191.85,144ZM144,40a8,8,0,0,1,8-8h16V16a8,8,0,0,1,16,0V32h16a8,8,0,0,1,0,16H184V64a8,8,0,0,1-16,0V48H152A8,8,0,0,1,144,40ZM248,88a8,8,0,0,1-8,8h-8v8a8,8,0,0,1-16,0V96h-8a8,8,0,0,1,0-16h8V72a8,8,0,0,1,16,0v8h8A8,8,0,0,1,248,88Z"></path></svg>
-                        </button>
-                    </li>
-                    <li>
-                        <button onclick="window.open('https://phosphoricons.com/', '_blank')" class="tab" style="padding: 5px 8px; height: 100%;">
-                            <!-- Icon Link -->
-                            <svg width="33" height="44" viewBox="0 0 33 44" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 inline-block mb-0.5"><path d="M17.1026 0.0502575H1.49434C1.19446 0.0502575 0.906859 0.16938 0.694815 0.381425C0.48277 0.59347 0.363647 0.881056 0.363647 1.18093V28.9189C0.367464 32.8948 1.94793 36.707 4.75845 39.5193C7.56897 42.3316 11.3801 43.9145 15.3561 43.9209C15.5045 43.9209 15.6516 43.8917 15.7887 43.8348C15.9259 43.778 16.0506 43.6947 16.1556 43.5897C16.2606 43.4847 16.3438 43.3601 16.4007 43.2229C16.4575 43.0857 16.4867 42.9387 16.4867 42.7902V30.0495H17.093C19.0854 30.0852 21.0649 29.7236 22.916 28.9858C24.7671 28.2481 26.4526 27.1489 27.8742 25.7525C29.2959 24.3561 30.425 22.6905 31.1959 20.8529C31.9667 19.0153 32.3637 17.0426 32.3637 15.0499C32.3637 13.0572 31.9667 11.0845 31.1959 9.24687C30.425 7.40928 29.2959 5.74366 27.8742 4.34728C26.4526 2.95089 24.7671 1.85173 22.916 1.11395C21.0649 0.376168 19.0854 0.0145723 17.093 0.0502575H17.1026ZM14.2157 41.6114C11.2443 41.3412 8.46159 40.0378 6.35178 37.928C4.24197 35.8181 2.93856 33.0354 2.66832 30.064H14.2157V41.6114ZM14.2157 24.1315L3.32749 2.31161H14.235L14.2157 24.1315ZM17.1026 27.7882H16.4964V2.31161H17.1026C18.7962 2.27869 20.4794 2.58386 22.0537 3.20923C23.628 3.8346 25.0618 4.76763 26.2712 5.95375C27.4806 7.13987 28.4413 8.55527 29.0972 10.1171C29.753 11.679 30.0908 13.3559 30.0908 15.0499C30.0908 16.7439 29.753 18.4208 29.0972 19.9827C28.4413 21.5445 27.4806 22.9599 26.2712 24.146C25.0618 25.3321 23.628 26.2652 22.0537 26.8906C20.4794 27.5159 18.7962 27.8211 17.1026 27.7882Z" fill="#C4E456"></path></svg>
-                        </button>
-                    </li>
-                    <li>
-                        <button onclick="showModal()" class="tab" style="padding: 5px 8px; height: 100%;">
-                            <!-- Gear Icon -->
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" class="w-4 h-4 inline-block mb-0.5" viewBox="0 0 24 24"><path d="M0 0h24v24H0V0z"/><path fill="#42a5f5" d="M19.43 12.98c.04-.32.07-.64.07-.98 0-.34-.03-.66-.07-.98l2.11-1.65c.19-.15.24-.42.12-.64l-2-3.46a.5.5 0 0 0-.61-.22l-2.49 1c-.52-.4-1.08-.73-1.69-.98l-.38-2.65A.488.488 0 0 0 14 2h-4c-.25 0-.46.18-.49.42l-.38 2.65c-.61.25-1.17.59-1.69.98l-2.49-1a.566.566 0 0 0-.18-.03c-.17 0-.34.09-.43.25l-2 3.46c-.13.22-.07.49.12.64l2.11 1.65c-.04.32-.07.65-.07.98 0 .33.03.66.07.98l-2.11 1.65c-.19.15-.24.42-.12.64l2 3.46a.5.5 0 0 0 .61.22l2.49-1c.52.4 1.08.73 1.69.98l.38 2.65c.03.24.24.42.49.42h4c.25 0 .46-.18.49-.42l.38-2.65c.61-.25 1.17-.59 1.69-.98l2.49 1c.06.02.12.03.18.03.17 0 .34-.09.43-.25l2-3.46c.12-.22.07-.49-.12-.64l-2.11-1.65zm-1.98-1.71c.04.31.05.52.05.73 0 .21-.02.43-.05.73l-.14 1.13.89.7 1.08.84-.7 1.21-1.27-.51-1.04-.42-.9.68c-.43.32-.84.56-1.25.73l-1.06.43-.16 1.13-.2 1.35h-1.4l-.19-1.35-.16-1.13-1.06-.43c-.43-.18-.83-.41-1.23-.71l-.91-.7-1.06.43-1.27.51-.7-1.21 1.08-.84.89-.7.14 1.13c.03.31.05.54.05.74s-.02.43-.05.73l-.14 1.13-.89.7-1.08.84.7 1.21 1.27-.51 1.04-.42.9.68c.43.32.84.56 1.25.73l1.06.43.16 1.13.2 1.35h1.39l.19-1.35.16-1.13 1.06-.43c.43-.18.83-.41 1.23-.71l.91-.7 1.06.43 1.27.51.7-1.21-1.07.85-.89.7.14 1.13zM12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm0 6c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z"/></svg>
-                        </button>
-                    </li>
                 </ul>
 
                 <!-- HTML Editor -->
@@ -191,12 +134,36 @@
                 </div>
             </section>
 
-            <section id="preview" class="flex-1 bg-muted md:w-1/2 pt-3 p-5 md:pl-2 md:pt-5">
-                <iframe id="preview-frame" class="w-full h-[40vh] md:h-[100%] border-none bg-white shadow-md" title="Live Preview"></iframe>
+            <section id="preview" class="flex-1 bg-muted md:w-1/2 py-3 px-5 md:pl-2 md:pt-5 flex flex-col">
+                <iframe id="preview-frame" class="w-full h-[20vh] md:h-[50%] border-none bg-white shadow-md mb-3" title="Live Preview"></iframe>
+                
+                <!-- AI Chatbot Section -->
+                <div class="w-full h-[20vh] md:h-[50%] bg-zinc-900 rounded shadow-md flex flex-col">
+                    <div class="bg-zinc-800 p-2 text-zinc-300 font-medium flex items-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 mr-2">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <path d="M12 16v-4"></path>
+                            <path d="M12 8h.01"></path>
+                        </svg>
+                        <span>AI Assistant</span>
+                    </div>
+                    <div id="chat-messages" class="flex-grow overflow-y-auto p-3 space-y-2 text-sm"></div>
+                    <div class="p-2 border-t border-zinc-800 flex">
+                        <input id="chat-input" type="text" placeholder="Ask the AI for help with your site..." 
+                               class="flex-grow bg-zinc-800 text-zinc-300 p-2 rounded-l outline-none border-none" 
+                               onkeydown="if(event.key === 'Enter') sendMessage()">
+                        <button onclick="sendMessage()" class="bg-[#c084fc] hover:bg-[#c997fb] text-[#0b0e14] font-semibold p-2 rounded-r">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4">
+                                <line x1="22" y1="2" x2="11" y2="13"></line>
+                                <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
             </section>
         </div>
-        <div class="flex justify-center p-5 bg-background pt-0">
-            <button onclick="saveSite()" class="bg-[#E6B450] hover:bg-[#E6A030] text-[#0b0e14] font-semibold py-2 px-4 rounded-md transition-colors duration-200 flex items-center space-x-2">
+        <div class="flex justify-start p-5 bg-background pt-0">
+            <button onclick="saveSite()" class="bg-[#c084fc] hover:bg-[#c997fb] hover:scale-105 text-[#0b0e14] font-semibold py-1 px-4 transition duration-200 flex items-center space-x-2">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4">
                     <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
                     <polyline points="17 21 17 13 7 13 7 21"></polyline>
@@ -207,23 +174,6 @@
         </div>
     </main>
 
-    <div id="modal" class="bkmdl text-white p-4 inline-block w-1/2" style="top: 50%; left: 50%; transform: translate(-50%, -50%); position: absolute; display:none; z-index: 9999;">
-        <h1 class="text-center text-xl h1mdl">Settings</h1>
-        <button onclick="document.getElementById('modal').style.display = 'none'" class="absolute top-3.5 right-5 p-1 closemdl">✕</button>
-
-        <h2 class="text-md mb-0.5 h2mdl">Theme</h2>
-        <div class="text-black transition-colors duration-300" id="theme">
-            <div class="inline-flex h-9 items-baseline justify-start dol-container p-1 w-full" style="gap: 3px;">
-                <button type="button" class="dol-option group inline-flex w-full items-center justify-center py-2 text-xs font-semibold text-gray-700 hover:stroke-blue-950 px-3" id="light-mode">
-                    <div>Light</div>
-                </button>
-                <button type="button" class="dol-option dol-selected group inline-flex w-full items-center justify-center py-2 text-xs font-semibold px-3" id="dark-mode">
-                    <div>Dark</div>
-                </button>
-            </div>
-        </div>
-    </div>
-
     <div id="message-modal" class="bkmdl text-white p-4 inline-block w-1/2" style="top: 50%; left: 50%; transform: translate(-50%, -50%); position: absolute; display:none; z-index: 9999;">
         <h1 id="message-title" class="text-center text-xl h1mdl"></h1>
         <p id="message-content" class="text-center"></p>
@@ -232,6 +182,186 @@
 
     <script>
         let htmlEditor, cssEditor, jsEditor;
+
+        // Add the chat functionality
+        function sendMessage() {
+            const input = document.getElementById('chat-input');
+            const message = input.value.trim();
+            if (!message) return;
+            
+            // Clear input
+            input.value = '';
+            
+            // Add user message to chat
+            addMessageToChat('user', message);
+            
+            // Show loading indicator
+            const loadingId = 'loading-message-' + Date.now();
+            addMessageToChat('assistant', '...', loadingId);
+            
+            // Get current code from editors
+            const html = htmlEditor.getValue();
+            const css = cssEditor.getValue();
+            const js = jsEditor.getValue();
+            
+            // Create a message container for the AI response
+            const chatMessages = document.getElementById('chat-messages');
+            const aiMessageDiv = document.createElement('div');
+            aiMessageDiv.className = 'p-2 rounded bg-zinc-700 mr-8';
+            aiMessageDiv.id = 'ai-response-' + Date.now();
+            
+            const iconSpan = document.createElement('span');
+            iconSpan.className = 'font-bold';
+            iconSpan.textContent = 'AI: ';
+            
+            const contentSpan = document.createElement('span');
+            contentSpan.id = 'ai-content-' + Date.now();
+            contentSpan.textContent = '';
+            
+            aiMessageDiv.appendChild(iconSpan);
+            aiMessageDiv.appendChild(contentSpan);
+            
+            document.getElementById(loadingId)?.remove();
+            chatMessages.appendChild(aiMessageDiv);
+            
+            fetch('/ai', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    message: message,
+                    html: html,
+                    css: css,
+                    js: js
+                }),
+            })
+            .then(response => {
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                let buffer = '';
+                let fullResponse = '';
+                
+                function processStream() {
+                    return reader.read().then(({ done, value }) => {
+                        if (done) {
+                            // Format the complete response when stream is done
+                            contentSpan.innerHTML = formatAIResponse(fullResponse);
+                            chatMessages.scrollTop = chatMessages.scrollHeight;
+                            return;
+                        }
+                        
+                        // Decode the chunk and add it to our buffer
+                        const chunk = decoder.decode(value, { stream: true });
+                        buffer += chunk;
+                        
+                        // Process complete SSE messages in the buffer
+                        let lines = buffer.split('\n\n');
+                        buffer = lines.pop() || ''; // Keep the last incomplete chunk in the buffer
+                        
+                        for (const line of lines) {
+                            if (line.startsWith('data: ')) {
+                                try {
+                                    const data = JSON.parse(line.substring(6));
+                                    
+                                    if (data.content === '[DONE]') {
+                                        return; // End of stream
+                                    }
+                                    
+                                    // Add to full response
+                                    fullResponse += data.content;
+                                    
+                                    // Update with formatted content
+                                    contentSpan.innerHTML = formatAIResponse(fullResponse);
+                                    
+                                    // Scroll to bottom
+                                    chatMessages.scrollTop = chatMessages.scrollHeight;
+                                } catch (e) {
+                                    console.error('Error parsing SSE data:', e);
+                                }
+                            }
+                        }
+                        
+                        // Continue reading
+                        return processStream();
+                    });
+                }
+                
+                return processStream();
+            })
+            .catch(error => {
+                console.error('Error with AI request:', error);
+                contentSpan.innerHTML += "<br>[Error: Could not connect to AI service]";
+            });
+        }
+        
+        // Format AI response with syntax highlighting and markdown-like features
+        function formatAIResponse(text) {
+            if (!text) return '';
+            
+            // Replace line breaks with <br>
+            let formatted = text.replace(/\n/g, '<br>');
+            
+            // Format code blocks with syntax highlighting
+            formatted = formatted.replace(/```(\w+)?\s*([\s\S]*?)\s*```/g, function(match, language, code) {
+                language = language || 'plaintext';
+                
+                // Apply syntax highlighting based on language
+                let highlightedCode = code;
+                
+                if (language === 'css') {
+                    // CSS syntax highlighting
+                    highlightedCode = highlightCSS(escapeHtml(code));
+                } else if (language === 'html' || language === 'xml') {
+                    // HTML syntax highlighting
+                    highlightedCode = highlightHTML(escapeHtml(code));
+                } else if (language === 'javascript' || language === 'js') {
+                    // JavaScript syntax highlighting
+                    highlightedCode = highlightJS(escapeHtml(code));
+                } else {
+                    // Plain text
+                    highlightedCode = escapeHtml(code);
+                }
+
+                return `<pre><code class="language-${language}">${highlightedCode}</code></pre>`;
+            });
+            
+            // Format inline code
+            formatted = formatted.replace(/`([^`]+)`/g, '<code class="inline-code">$1</code>');
+            
+            return formatted;
+        }
+        
+        // Helper function to escape HTML
+        function escapeHtml(unsafe) {
+            return unsafe
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+        
+        function addMessageToChat(role, content, id = null) {
+            const chatMessages = document.getElementById('chat-messages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `p-2 rounded ${role === 'user' ? 'bg-zinc-800 ml-8' : 'bg-zinc-700 mr-8'}`;
+            if (id) messageDiv.id = id;
+            
+            const iconSpan = document.createElement('span');
+            iconSpan.className = 'font-bold';
+            iconSpan.textContent = role === 'user' ? 'You: ' : 'AI: ';
+            
+            const contentSpan = document.createElement('span');
+            contentSpan.textContent = content;
+            
+            messageDiv.appendChild(iconSpan);
+            messageDiv.appendChild(contentSpan);
+            chatMessages.appendChild(messageDiv);
+            
+            // Scroll to bottom
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
 
         document.addEventListener("DOMContentLoaded", function() {
             // Initialize CodeMirror editors
@@ -246,13 +376,13 @@
 
             htmlEditor = CodeMirror(document.getElementById('html-editor'), {
                 ...commonOptions,
-                value: '<!DOCTYPE html>\n<html lang="en">\n<head>\n    <meta charset="UTF-8">\n    <meta name="viewport" content="width=device-width, initial-scale=1.0">\n    <title>Untitled ShortSite</title>\n</head>\n<body>\n    <h1>Write your html here</h1>\n    <!-- Add more HTML here -->\n</body>\n</html>',
+                value: `<!DOCTYPE html>\n<html lang="en">\n<head>\n    <meta charset="UTF-8">\n    <meta name="viewport" content="width=device-width, initial-scale=1.0">\n    <title>Untitled ShortSite</title>\n    <style do-not-remove>[[_CSS_]]</style>\n</head>\n<body>\n    <h1>Write your html here</h1>\n    <!-- Add more HTML here -->\n\n    <script do-not-remove>[[_JS_]]<\/script>\n</body>\n</html>`,
                 mode: 'htmlmixed'
             });
 
             cssEditor = CodeMirror(document.getElementById('css-editor'), {
                 ...commonOptions,
-                value: `body {\n    background-color: #0E1017;\n    color: #fff;\n    font-family: Arial, Helvetica, sans-serif;\n    text-align: center;\n}\n\n/* Add more CSS here... */`,
+                value: `body {\n    background-color: #0f0f11;\n    color: #fff;\n    font-family: Arial, Helvetica, sans-serif;\n    text-align: center;\n}\n\n/* Add more CSS here... */`,
                 mode: 'css'
             });
 
@@ -316,7 +446,11 @@
                     if (data.error) {
                         showMessageModal('Error', 'An error occurred while saving your ShortSite.');
                     } else {
-                        showMessageModal('Success', `Your ShortSite has been saved! Visit it at: <a href="${data.link}" target="_blank" class="text-blue-400 underline">${data.link}</a>`);
+                        showMessageModal('', `
+                            <p class="!mt-3 !mb-4">Your site is now published. Check it out at <a href="${data.link}" target="_blank" class="text-blue-400 underline">${data.link}</a></p>
+                            <p class="bg-zinc-800 p-2 rounded font-mono !mb-1 cursor-pointer" onclick="navigator.clipboard.writeText('${data.access_key}'); alert('Your key has been copied to clipboard.')">Your access key is <span class="text-red-400">${data.access_key}</span></p>
+                            <p class="!mb-1 !text-sm !text-left text-red-500">KEEP THIS SOMEWHERE SAFE. THIS IS USED TO MAKE EDITS TO YOUR SITE.</p>
+                        `);
                     }
                 });
             };
@@ -325,18 +459,25 @@
                 const modal = document.getElementById('message-modal');
                 const modalTitle = document.getElementById('message-title');
                 const modalContent = document.getElementById('message-content');
+                const mainElement = document.querySelector('main');
 
                 modalTitle.textContent = title;
+                modalTitle.style.display = title ? 'block' : 'none';
                 modalContent.innerHTML = content;
                 modal.style.display = 'block';
+                
+                mainElement.classList.add('opacity-70', 'blur-sm');
             }
 
             window.hideMessageModal = function() {
                 const modal = document.getElementById('message-modal');
+                const mainElement = document.querySelector('main');
+                
                 modal.style.display = 'none';
+                
+                mainElement.classList.remove('opacity-70', 'blur-sm');
             }
 
-            // Tab switch logic
             window.showTab = function(editor) {
                 document.querySelectorAll('.editor-container').forEach(container => container.classList.add('hidden'));
                 document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
@@ -344,37 +485,10 @@
                 document.getElementById(editor + '-editor-container').classList.remove('hidden');
                 document.getElementById(editor + '-tab').classList.add('active');
                 
-                // Refresh CodeMirror to avoid display issues when switching tabs
-                // (Codemirror refreshes when visible)
                 if (editor === 'html') htmlEditor.refresh();
                 if (editor === 'css') cssEditor.refresh();
                 if (editor === 'js') jsEditor.refresh();
             }
-
-            window.showModal = function() {
-                document.getElementById('modal').style.display = 'block';
-            }
-
-            // Theme switching example:
-            // Light and dark themes can be changed by swapping the theme class in editors:
-            const lightModeBtn = document.getElementById('light-mode');
-            const darkModeBtn = document.getElementById('dark-mode');
-
-            lightModeBtn.addEventListener('click', () => {
-                htmlEditor.setOption('theme', 'default');
-                cssEditor.setOption('theme', 'default');
-                jsEditor.setOption('theme', 'default');
-                lightModeBtn.classList.add('dol-selected');
-                darkModeBtn.classList.remove('dol-selected');
-            });
-
-            darkModeBtn.addEventListener('click', () => {
-                htmlEditor.setOption('theme', 'ayu-dark');
-                cssEditor.setOption('theme', 'ayu-dark');
-                jsEditor.setOption('theme', 'ayu-dark');
-                darkModeBtn.classList.add('dol-selected');
-                lightModeBtn.classList.remove('dol-selected');
-            });
         });
     </script>
 </body>

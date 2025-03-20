@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit Shortsite</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.12/codemirror.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/theme/ayu-dark.min.css" />
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.12/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.12/mode/htmlmixed/htmlmixed.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.12/mode/xml/xml.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.12/mode/javascript/javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.12/mode/css/css.min.js"></script>
+    
+    <link rel="stylesheet" href="/static/editor.css">
+</head>
+<body class="flex flex-col md:flex-row font-sans m-0 min-h-screen text-zinc-500 bg-zinc-950">
+    <main class="flex flex-col w-full">
+        <div class="flex flex-col md:flex-row flex-grow w-full">
+            <section class="flex-1 flex flex-col p-5 md:pr-2 pb-3 bg-background">
+                <ul class="flex flex-row bkyl">
+                    <li>
+                        <button onclick="showTab('html')" id="html-tab" class="tab active" style="margin-left: 0; padding-left: 19px;">
+                            <!-- HTML Icon -->
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" class="w-4 h-4 inline-block mr-1 mb-0.5"><path fill="#E65100" d="m4 4 2 22 10 2 10-2 2-22Zm19.72 7H11.28l.29 3h11.86l-.802 9.335L15.99 25l-6.635-1.646L8.93 19h3.02l.19 2 3.86.77 3.84-.77.29-4H8.84L8 8h16Z"/></svg>
+                            index.html
+                        </button>
+                    </li>
+                    <li>
+                        <button onclick="showTab('css')" id="css-tab" class="tab">
+                            <!-- CSS Icon -->
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" class="w-4 h-4 inline-block mr-1 mb-0.5"><path fill="#42a5f5" d="m29.18 4-3.57 18.36-.33 1.64-4.74 1.57-3.28 1.09L13.21 28 2.87 24.05 4.05 18h4.2l-.44 2.85 6.34 2.42.78-.26 6.52-2.16.17-.83.79-4.02H4.44l.74-3.76.05-.24h17.96l.78-4H6l.78-4h22.4z"/></svg>
+                            styles.css
+                        </button>
+                    </li>
+                    <li>
+                        <button onclick="showTab('js')" id="js-tab" class="tab">
+                            <!-- JS Icon -->
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" class="w-4 h-4 inline-block mr-1 mb-0.5"><path fill="#ffca28" d="M2 2h12v12H2V2m3.153 10.027c.267.567.794 1.033 1.694 1.033 1 0 1.686-.533 1.686-1.7V7.507H7.4v3.827c0 .573-.233.72-.6.72-.387 0-.547-.267-.727-.58l-.92.553m3.987-.12c.333.653 1.007 1.153 2.06 1.153 1.067 0 1.867-.553 1.867-1.573 0-.94-.54-1.36-1.5-1.773l-.28-.12c-.487-.207-.694-.347-.694-.68 0-.274.207-.487.54-.487.32 0 .534.14.727.487l.873-.58c-.366-.64-.886-.887-1.6-.887-1.006 0-1.653.64-1.653 1.487 0 .92.54 1.353 1.353 1.7l.28.12c.52.226.827.366.827.753 0 .32-.3.553-.767.553-.553 0-.873-.286-1.113-.686z"/></svg>
+                            script.js
+                        </button>
+                    </li>
+                    <li class="flex-grow tab no-hover"></li>
+                </ul>
+
+                <!-- HTML Editor -->
+                <div id="html-editor-container" class="editor-container">
+                    <div id="html-editor" class="w-full h-48 md:h-64 border border-input"></div>
+                </div>
+
+                <!-- CSS Editor -->
+                <div id="css-editor-container" class="editor-container hidden">
+                    <div id="css-editor" class="w-full h-48 md:h-64 border border-input"></div>
+                </div>
+
+                <!-- JS Editor -->
+                <div id="js-editor-container" class="editor-container hidden">
+                    <div id="js-editor" class="w-full h-48 md:h-64 border border-input"></div>
+                </div>
+            </section>
+
+            <section id="preview" class="flex-1 bg-muted md:w-1/2 py-3 px-5 md:pl-2 md:pt-5">
+                <iframe id="preview-frame" class="w-full h-[40vh] md:h-[100%] border-none bg-white shadow-md" title="Live Preview"></iframe>
+            </section>
+        </div>
+        <div class="flex justify-between p-5 bg-background pt-0">
+            <button onclick="saveSite()" class="bg-[#c084fc] hover:bg-[#c997fb] hover:scale-105 text-[#0b0e14] font-semibold py-1 px-4 transition duration-200 flex items-center space-x-2">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4">
+                    <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                    <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                    <polyline points="7 3 7 8 15 8"></polyline>
+                </svg>
+                <span>Save</span>
+            </button>
+
+            <div class="flex items-center ml-3">
+                <input id="password-input" placeholder="Set access code" class="bg-[#111113] text-white border border-[#1d1d20] p-2 w-48 outline-none">
+                <button id="set-password-btn" class="bg-[#c084fc] hover:bg-[#c997fb] text-[#0b0e14] font-semibold py-2 px-4 transition-colors duration-200">
+                    Set Access Code
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <div id="message-modal" class="bkmdl text-white p-4 inline-block w-1/2" style="top: 50%; left: 50%; transform: translate(-50%, -50%); position: absolute; display:none; z-index: 9999;">
+        <h1 id="message-title" class="text-center text-xl h1mdl"></h1>
+        <p id="message-content" class="text-center"></p>
+        <button onclick="hideMessageModal()" class="absolute top-3.5 right-5 p-1 closemdl">✕</button>
+    </div>
+
+    <script>
+        let htmlEditor, cssEditor, jsEditor;
+        const siteCode = '{{ code|safe }}';
+
+        document.addEventListener("DOMContentLoaded", function() {
+            // Initialize CodeMirror editors
+            const commonOptions = {
+                lineNumbers: true,
+                theme: 'ayu-dark',
+                tabSize: 2,
+                indentWithTabs: false,
+                styleActiveLine: true,
+                matchBrackets: true,
+            };
+
+            htmlEditor = CodeMirror(document.getElementById('html-editor'), {
+                ...commonOptions,
+                value: decodeURIComponent('{{ html|urlencode }}'),
+                mode: 'htmlmixed'
+            });
+
+            cssEditor = CodeMirror(document.getElementById('css-editor'), {
+                ...commonOptions,
+                value: decodeURIComponent('{{ css|urlencode }}'),
+                mode: 'css'
+            });
+
+            jsEditor = CodeMirror(document.getElementById('js-editor'), {
+                ...commonOptions,
+                value: decodeURIComponent('{{ js|urlencode }}'),
+                mode: 'javascript'
+            });
+
+            function updatePreview() {
+                const html = htmlEditor.getValue();
+                const css = `<style>${cssEditor.getValue()}</style>`;
+                const js = `<script>${jsEditor.getValue()}<\/script>`;
+                const content = `
+                    <!DOCTYPE html>
+                    <html lang="en">
+                    <head>
+                        <meta charset="UTF-8">
+                        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                        <title>Preview</title>
+                        ${css}
+                    </head>
+                    <body>
+                        ${html}
+                        ${js}
+                    </body>
+                    </html>
+                `;
+                const previewFrame = document.getElementById('preview-frame');
+                const previewDocument = previewFrame.contentDocument || previewFrame.contentWindow.document;
+                previewDocument.open();
+                previewDocument.write(content);
+                previewDocument.close();
+            }
+
+            htmlEditor.on("change", updatePreview);
+            cssEditor.on("change", updatePreview);
+            jsEditor.on("change", updatePreview);
+
+            updatePreview();
+
+            window.saveSite = function () {
+                const html = htmlEditor.getValue();
+                const css = cssEditor.getValue();
+                const js = jsEditor.getValue();
+
+                const formData = new URLSearchParams();
+                formData.append('html', html);
+                formData.append('css', css);
+                formData.append('js', js);
+                formData.append('code', siteCode);
+
+                fetch('/update_site', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: formData,
+                })
+                .then((response) => response.json())
+                .then((data) => {
+                    if (data.error) {
+                        showMessageModal('Error', 'An error occurred while updating your ShortSite.');
+                    } else {
+                        showMessageModal('Success', `
+                            <p>Your ShortSite has been updated!</p>
+                            <p>Visit it at: <a href="/s/${siteCode}" target="_blank" class="text-blue-400 underline">/s/${siteCode}</a></p>
+                        `);
+                    }
+                });
+            };
+
+            function showMessageModal(title, content) {
+                const modal = document.getElementById('message-modal');
+                const modalTitle = document.getElementById('message-title');
+                const modalContent = document.getElementById('message-content');
+
+                modalTitle.textContent = title;
+                modalContent.innerHTML = content;
+                modal.style.display = 'block';
+            }
+
+            window.hideMessageModal = function() {
+                const modal = document.getElementById('message-modal');
+                modal.style.display = 'none';
+            }
+
+            // Tab switch logic
+            window.showTab = function(editor) {
+                document.querySelectorAll('.editor-container').forEach(container => container.classList.add('hidden'));
+                document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+
+                document.getElementById(editor + '-editor-container').classList.remove('hidden');
+                document.getElementById(editor + '-tab').classList.add('active');
+                
+                // Refresh CodeMirror to avoid display issues when switching tabs
+                if (editor === 'html') htmlEditor.refresh();
+                if (editor === 'css') cssEditor.refresh();
+                if (editor === 'js') jsEditor.refresh();
+            }
+
+            // Set password functionality
+            document.getElementById('set-password-btn').addEventListener('click', function() {
+                const password = document.getElementById('password-input').value;
+                if (password.trim() === '') {
+                    showMessageModal('Error', 'Please enter an access code');
+                    return;
+                }
+                
+                // Send the password to the server
+                fetch(`/set_password/${siteCode}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: `password=${encodeURIComponent(password)}`
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.authorized) {
+                        showMessageModal('Success', 'Access code set successfully!');
+                        document.getElementById('password-input').value = '';
+                    } else {
+                        showMessageModal('Error', data.message || 'Failed to set access code');
+                    }
+                })
+                .catch(error => {
+                    showMessageModal('Error', 'An error occurred');
+                    console.error('Error:', error);
+                });
+            });
+        });
+    </script>
+</body>
+</html>

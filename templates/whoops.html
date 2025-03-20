@@ -1,1 +1,128 @@
-<!doctypehtml><html lang=en><meta charset=UTF-8><meta content="width=device-width,initial-scale=1"name=viewport><title>Custom Audio Player</title><script src=https://cdn.tailwindcss.com></script><style>@keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}.spin{animation:500s linear infinite spin}</style><body class="text-white bg-black flex flex-col items-center justify-center min-h-screen"><div class="bg-[#121212] p-4 rounded-lg shadow-lg w-96"id=full-player><div class="flex items-center justify-between"id=audio-player><button class="text-white hover:text-gray-400"id=play-pause><svg class="h-4 w-4"fill=#fff height=32 viewBox="0 0 256 256"width=32 xmlns=http://www.w3.org/2000/svg><path d=M232.4,114.49,88.32,26.35a16,16,0,0,0-16.2-.3A15.86,15.86,0,0,0,64,39.87V216.13A15.94,15.94,0,0,0,80,232a16.07,16.07,0,0,0,8.36-2.35L232.4,141.51a15.81,15.81,0,0,0,0-27ZM80,215.94V40l143.83,88Z></path></svg></button><div class="rounded bg-[#242424] flex-1 h-1 mx-4 relative"><div class="rounded absolute bg-white h-full left-0 top-0"id=progress style=width:0%></div></div><span class="select-none text-sm"id=time>0:00</span></div><audio class=hidden id=audio><source src="{{ url_for('static', filename='theperfectgirl.mp3') }}"type=audio/mp3>Your browser does not support the audio element.</audio></div><p class="text-white cursor-pointer mt-2 subtitle text-xs"id=error onclick='document.getElementById("error").innerText="{{ error }}"'>something wrong has happened. enjoy the music click for the error</p><script>const audio=document.getElementById("audio"),player=document.getElementById("full-player"),playPauseBtn=document.getElementById("play-pause"),progress=document.getElementById("progress"),time=document.getElementById("time");playPauseBtn.addEventListener("click",(()=>{audio.paused?(audio.play(),player.classList.add("spin"),playPauseBtn.innerHTML='<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="#fff" viewBox="0 0 256 256" class="w-4 h-4"><path d="M200,32H160a16,16,0,0,0-16,16V208a16,16,0,0,0,16,16h40a16,16,0,0,0,16-16V48A16,16,0,0,0,200,32Zm0,176H160V48h40ZM96,32H56A16,16,0,0,0,40,48V208a16,16,0,0,0,16,16H96a16,16,0,0,0,16-16V48A16,16,0,0,0,96,32Zm0,176H56V48H96Z"></path></svg>'):(audio.pause(),player.classList.remove("spin"),playPauseBtn.innerHTML='<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="#fff" viewBox="0 0 256 256" class="w-4 h-4"><path d="M232.4,114.49,88.32,26.35a16,16,0,0,0-16.2-.3A15.86,15.86,0,0,0,64,39.87V216.13A15.94,15.94,0,0,0,80,232a16.07,16.07,0,0,0,8.36-2.35L232.4,141.51a15.81,15.81,0,0,0,0-27ZM80,215.94V40l143.83,88Z"></path></svg>')})),audio.addEventListener("timeupdate",(()=>{const e=audio.currentTime/audio.duration*100;progress.style.width=`${e}%`;const t=Math.floor(audio.currentTime/60),a=Math.floor(audio.currentTime%60).toString().padStart(2,"0");time.textContent=`${t}:${a}`})),audio.addEventListener("ended",(()=>{playPauseBtn.textContent="▶"}));</script>
+<!DOCTYPE html>
+<html lang=en>
+<meta charset=UTF-8>
+<meta content="width=device-width,initial-scale=1" name=viewport>
+<title>Custom Audio Player</title>
+<script src=https://cdn.tailwindcss.com></script>
+<style>
+    @keyframes spin {
+        from {
+            transform: rotate(0)
+        }
+        to {
+            transform: rotate(360deg)
+        }
+    }
+
+    .spin {
+        animation: 500s linear infinite spin
+    }
+    
+    #error-box {
+        position: absolute;
+        padding: 10px 20px;
+        border-radius: 4px;
+        transition: all 0.05s linear;
+        color: white;
+        user-select: none;
+        max-width: 300px;
+        text-align: center;
+        z-index: -1;
+        box-shadow: 0 0 1rem rgba(255, 255, 255, 1);
+    }
+</style>
+
+<body class="text-white bg-black flex flex-col items-center justify-center min-h-screen">
+    <div id="error-box" class="bg-zinc-800">{{ error }}</div>
+    
+    <div class="bg-white/10 backdrop-blur-md p-4 rounded-lg shadow-lg w-96 relative z-10" id=full-player>
+        <div class="flex items-center justify-between" id=audio-player>
+            <button class="text-white hover:text-gray-400" id=play-pause>
+                <svg class="h-4 w-4"fill=#fff height=32 viewBox="0 0 256 256"width=32 xmlns=http://www.w3.org/2000/svg><path d=M232.4,114.49,88.32,26.35a16,16,0,0,0-16.2-.3A15.86,15.86,0,0,0,64,39.87V216.13A15.94,15.94,0,0,0,80,232a16.07,16.07,0,0,0,8.36-2.35L232.4,141.51a15.81,15.81,0,0,0,0-27ZM80,215.94V40l143.83,88Z></path></svg>
+            </button>
+            <div class="rounded bg-white/10 flex-1 h-1 mx-4 relative">
+                <div class="rounded absolute bg-white h-full left-0 top-0" id="progress" style="width: 0%"></div>
+            </div>
+        <span class="select-none text-sm" id=time>0:00</span>
+    </div>
+    <audio class=hidden id=audio><source src="{{ url_for('static', filename='error.mp3') }}"type=audio/mp3></audio>
+        
+    <script>
+        const audio = document.getElementById("audio"),
+            player = document.getElementById("full-player"),
+            playPauseBtn = document.getElementById("play-pause"),
+            progress = document.getElementById("progress"),
+            time = document.getElementById("time");
+        playPauseBtn.addEventListener("click", (() => {
+            audio.paused ? (audio.play(), player.classList.add("spin"), playPauseBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="#fff" viewBox="0 0 256 256" class="w-4 h-4"><path d="M200,32H160a16,16,0,0,0-16,16V208a16,16,0,0,0,16,16h40a16,16,0,0,0,16-16V48A16,16,0,0,0,200,32Zm0,176H160V48h40ZM96,32H56A16,16,0,0,0,40,48V208a16,16,0,0,0,16,16H96a16,16,0,0,0,16-16V48A16,16,0,0,0,96,32Zm0,176H56V48H96Z"></path></svg>') : (audio.pause(), player.classList.remove("spin"), playPauseBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="#fff" viewBox="0 0 256 256" class="w-4 h-4"><path d="M232.4,114.49,88.32,26.35a16,16,0,0,0-16.2-.3A15.86,15.86,0,0,0,64,39.87V216.13A15.94,15.94,0,0,0,80,232a16.07,16.07,0,0,0,8.36-2.35L232.4,141.51a15.81,15.81,0,0,0,0-27ZM80,215.94V40l143.83,88Z"></path></svg>')
+        })), audio.addEventListener("timeupdate", (() => {
+            const e = audio.currentTime / audio.duration * 100;
+            progress.style.width = `${e}%`;
+            const t = Math.floor(audio.currentTime / 60),
+                a = Math.floor(audio.currentTime % 60).toString().padStart(2, "0");
+            time.textContent = `${t}:${a}`
+        })), audio.addEventListener("ended", (() => {
+            playPauseBtn.textContent = "▶"
+        }));
+        
+        // DVD logo bounce effect for error box
+        const errorBox = document.getElementById("error-box");
+        let x = Math.random() * (window.innerWidth - errorBox.offsetWidth);
+        let y = Math.random() * (window.innerHeight - errorBox.offsetHeight);
+        let xSpeed = 2;
+        let ySpeed = 2;
+        
+        // Random color function with matching shadow
+        function getRandomColor() {
+            const colorClasses = {
+                'bg-red-500': 'rgba(239, 68, 68, 0.7)',
+                'bg-blue-500': 'rgba(59, 130, 246, 0.7)',
+                'bg-green-500': 'rgba(34, 197, 94, 0.7)',
+                'bg-yellow-500': 'rgba(234, 179, 8, 0.7)',
+                'bg-purple-500': 'rgba(168, 85, 247, 0.7)',
+                'bg-pink-500': 'rgba(236, 72, 153, 0.7)'
+            };
+            
+            const classes = Object.keys(colorClasses);
+            const randomClass = classes[Math.floor(Math.random() * classes.length)];
+            
+            // Set the matching box shadow
+            errorBox.style.boxShadow = `0 0 2rem ${colorClasses[randomClass]}`;
+            
+            return randomClass;
+        }
+        
+        // Set initial position and color
+        errorBox.style.left = `${x}px`;
+        errorBox.style.top = `${y}px`;
+        errorBox.className = getRandomColor();
+        
+        // Animation loop
+        function animate() {
+            // Update position
+            x += xSpeed;
+            y += ySpeed;
+            
+            // Check for collision with window edges
+            if (x <= 0 || x + errorBox.offsetWidth >= window.innerWidth) {
+                xSpeed = -xSpeed;
+                errorBox.className = `${getRandomColor()}`;
+            }
+            
+            if (y <= 0 || y + errorBox.offsetHeight >= window.innerHeight) {
+                ySpeed = -ySpeed;
+                errorBox.className = `${getRandomColor()}`;
+            }
+            
+            // Apply new position
+            errorBox.style.left = `${x}px`;
+            errorBox.style.top = `${y}px`;
+            
+            requestAnimationFrame(animate);
+        }
+        
+        // Start animation
+        animate();
+    </script>
+</body>
+</html>

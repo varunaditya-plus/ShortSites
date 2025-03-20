@@ -1,13 +1,19 @@
-from flask import Flask, render_template, request, jsonify, render_template_string
+from flask import Flask, render_template, request, jsonify, render_template_string, session, redirect, url_for, Response
 import random, string, jsmin, rcssmin, minify_html
 from supabase import create_client, Client
+import os
+import json
+from openai import Client
 
 app = Flask(__name__)
+app.secret_key = os.urandom(24)
 
 SUPABASE_URL = "https://ddxiypgmfhcchnmeldfi.supabase.co"
 SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRkeGl5cGdtZmhjY2hubWVsZGZpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzMzNDg1MzMsImV4cCI6MjA0ODkyNDUzM30.Wd6-6JsYRUc6fugAP_-7AHD4BqyXOBJ2cl5XgHrKrwg"
 # tablename: shortsites, tablecolumns: id (int8) | html (text) | code (text) | javascript (text) | css (text) | password_hash (text)
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+
+openai = Client(api_key="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")
 
 def get_domain():
     return request.url_root[:-1]
@@ -34,11 +40,25 @@ def uploadsite():
     checkifcodexists = supabase.table('shortsites').select('*').eq('code', code).execute()
     if len(checkifcodexists.data) > 0: code = generate_code()
 
+    access_key = ''.join(random.choices(string.ascii_letters + string.digits, k=8))
+    
     url = f'{domain}/s/{code}'
-    response = supabase.table("shortsites").insert({"html": html, "css": css, "javascript": js, "code": code}).execute()
+    response = supabase.table("shortsites").insert({
+        "html": html, 
+        "css": css, 
+        "javascript": js, 
+        "code": code,
+        "password_hash": access_key
+    }).execute()
     print(response)
-
-    return jsonify({ 'link': url })
+    
+    session[f'edit_auth_{code}'] = True
+    
+    return jsonify({ 
+        'link': url,
+        'access_key': access_key,
+        'edit_link': f'{domain}/edit/{code}?code={access_key}'
+    })
 
 @app.route('/create')
 def create():
@@ -47,8 +67,6 @@ def create():
 @app.route('/s/<code>')
 def shortsite(code):
     try:
-        # get the html, css and js from the database using the code
-        # then merge them into an html page and return render_template_string(merged_html_page)
         response = supabase.table('shortsites').select('*').eq('code', code).execute()
         if len(response.data) > 0:
             html = response.data[0]['html']
@@ -59,18 +77,163 @@ def shortsite(code):
             js = jsmin.jsmin(js)
             html = html.replace('[[_CSS_]]', css)
             html = html.replace('[[_JS_]]', js)
-            return render_template_string(html)
-    except:
+            return render_template('basesite.html', site_content=html)
+        else: return render_template("site_not_found.html"), 404
+    except Exception as e:
+        print(f"Error rendering site: {e}")
         return render_template("site_not_found.html"), 404
     
 @app.route('/ai', methods=["GET", "POST"])
 def ai():
-    if request.method == "POST": print("hi")
-    else: return render_template("whoops.html")
+    if request.method == "POST":
+        try:
+            data = request.get_json()
+            user_message = data.get('message', '')
+            html_code = data.get('html', '')
+            css_code = data.get('css', '')
+            js_code = data.get('js', '')
+            
+            system_message = f"""
+            You are an AI assistant helping with very basic web development. 
+            The user is not familiar with writing websites and is working on a website with the following code:
+            
+            HTML:
+            ```html
+            {html_code}
+            ```
+            
+            CSS:
+            ```css
+            {css_code}
+            ```
+            
+            JavaScript:
+            ```javascript
+            {js_code}
+            ```
+            
+            Provide helpful, very short and concise responses about web development. Do not respond with full code to copy and paste, instead explain and teach the user.
+            """
+            
+            response = openai.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[
+                    {"role": "system", "content": system_message},
+                    {"role": "user", "content": user_message}
+                ],
+                max_tokens=1000,
+                temperature=0.7,
+                stream=True  # Enable streaming
+            )
+
+            total_response = [] #
+            
+            def generate():
+                for chunk in response:
+                    if chunk.choices[0].delta.content is not None:
+                        total_response.append(chunk.choices[0].delta.content)
+                        yield f"data: {json.dumps({'content': chunk.choices[0].delta.content})}\n\n"
+
+                final_response = ''.join(total_response)  #
+                print("\nFINAL AI RESPONSE:\n", final_response)  #
+                yield f"data: {json.dumps({'content': '[DONE]'})}\n\n"
+            
+            return Response(generate(), mimetype='text/event-stream')
+            
+        except Exception as e:
+            print(f"Error in AI processing: {e}")
+            return jsonify({"response": f"Sorry, there was an error: {str(e)}"}), 500
+    else:
+        return render_template("whoops.html")
 
 @app.errorhandler(Exception)
 def handle_exception(e):
     return render_template("whoops.html", error=e), getattr(e, 'code', 500)
+
+@app.route('/edit/<code>', methods=['GET'])
+def edit_site(code):
+    access_code = request.args.get('code')
+    
+    # Check if the site exists
+    response = supabase.table('shortsites').select('*').eq('code', code).execute()
+    if len(response.data) == 0:
+        return render_template("site_not_found.html"), 404
+    
+    site_data = response.data[0]
+    
+    # Check if user is already authorized in the session
+    is_authorized = session.get(f'edit_auth_{code}', False)
+    
+    # If not authorized via session, check the access code
+    if not is_authorized:
+        # Check if the site has a password_hash and if it matches the provided code
+        if 'password_hash' in site_data and site_data['password_hash']:
+            if not access_code or access_code != site_data['password_hash']:
+                return redirect(f'/s/{code}')
+            else:
+                # Store the authorization in session if access code is correct
+                session[f'edit_auth_{code}'] = True
+
+    return render_template('edit.html', 
+                          html=site_data['html'], 
+                          css=site_data['css'], 
+                          js=site_data['javascript'],
+                          code=code)
+
+@app.route('/update_site', methods=['POST'])
+def update_site():
+    code = request.form.get('code')
+    html = request.form.get('html')
+    css = request.form.get('css')
+    js = request.form.get('js')
+
+    # Check if user is authorized
+    if not session.get(f'edit_auth_{code}'):
+        return jsonify({'success': False, 'message': 'Not authorized'}), 403
+    # Update the site in the database
+    supabase.table('shortsites').update({
+        'html': html,
+        'css': css,
+        'javascript': js
+    }).eq('code', code).execute()
+    
+    return jsonify({'success': True})
+
+# Add a route to handle setting a password for a site
+@app.route('/check_auth/<code>')
+def check_auth(code):
+    """Check if the user is authorized to edit this site based on session data"""
+    is_authorized = session.get(f'edit_auth_{code}', False)
+    return jsonify({'authorized': is_authorized})
+
+@app.route('/verify_code/<code>', methods=['POST'])
+def verify_code(code):
+    data = request.get_json()
+    access_code = data.get('accessCode')
+    
+    response = supabase.table('shortsites').select('*').eq('code', code).execute()
+    if len(response.data) == 0:  return jsonify({'success': False, 'message': 'Site not found'}), 404
+    site_data = response.data[0]
+    
+    if site_data['password_hash'] == access_code:
+        session[f'edit_auth_{code}'] = True
+        return jsonify({'success': True})
+    else: return jsonify({'success': False, 'message': 'Invalid access code'}), 403
+
+
+@app.route('/set_password/<code>', methods=['POST'])
+def set_password(code):
+    if not session.get(f'edit_auth_{code}'):
+        return jsonify({'success': False, 'message': 'Not authorized'}), 403
+    
+    password = request.form.get('password')
+    
+    # Update the password in the database
+    supabase.table('shortsites').update({
+        'password_hash': password  # In a real app, hash this password
+    }).eq('code', code).execute()
+    
+    return jsonify({'success': True})
 
 if __name__ == '__main__':
     app.run(debug=True, port=2929)
