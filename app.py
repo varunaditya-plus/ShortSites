@@ -2,16 +2,18 @@ from flask import Flask, render_template, request, jsonify, session, redirect, R
 import random, string, jsmin, rcssmin, minify_html, os, json
 from supabase import create_client, Client
 from openai import Client
+from dotenv import load_dotenv
 
+load_dotenv()
 app = Flask(__name__)
 app.secret_key = os.urandom(24)
 
-SUPABASE_URL = "https://ddxiypgmfhcchnmeldfi.supabase.co"
-SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRkeGl5cGdtZmhjY2hubWVsZGZpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzMzNDg1MzMsImV4cCI6MjA0ODkyNDUzM30.Wd6-6JsYRUc6fugAP_-7AHD4BqyXOBJ2cl5XgHrKrwg"
+SUPABASE_URL = os.environ.get("SUPABASE_URL")
+SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
 # tablename: shortsites, tablecolumns: id (int8) | html (text) | code (text) | javascript (text) | css (text) | password_hash (text)
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-openai = Client(api_key="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")
+openai = Client(api_key=os.environ.get("OPENAI_API_KEY"))
 
 def get_domain():
     return request.url_root[:-1]
