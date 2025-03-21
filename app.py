@@ -25,7 +25,12 @@ def generate_code():
 
 @app.route('/')
 def index():
-    return render_template('index.html')
+    validated_codes = session.get('validated_codes', [])
+    sites = []
+    if validated_codes:
+        response = supabase.table('shortsites').select('*').in_('code', validated_codes).execute()
+        sites = response.data
+    return render_template('index.html', sites=sites)
 
 @app.route('/uploadsite', methods=['POST'])
 def uploadsite():
@@ -53,6 +58,12 @@ def uploadsite():
     print(response)
     
     session[f'edit_auth_{code}'] = True
+    
+    # Add code to validated_codes list
+    validated_codes = session.get('validated_codes', [])
+    if code not in validated_codes:
+        validated_codes.append(code)
+        session['validated_codes'] = validated_codes
     
     return jsonify({ 
         'link': url,
@@ -212,14 +223,19 @@ def verify_code(code):
     access_code = data.get('accessCode')
     
     response = supabase.table('shortsites').select('*').eq('code', code).execute()
-    if len(response.data) == 0:  return jsonify({'success': False, 'message': 'Site not found'}), 404
+    if len(response.data) == 0:
+        return jsonify({'success': False, 'message': 'Site not found'}), 404
     site_data = response.data[0]
     
     if site_data['password_hash'] == access_code:
         session[f'edit_auth_{code}'] = True
+        validated_codes = session.get('validated_codes', [])
+        if code not in validated_codes:
+            validated_codes.append(code)
+            session['validated_codes'] = validated_codes
         return jsonify({'success': True})
-    else: return jsonify({'success': False, 'message': 'Invalid access code'}), 403
-
+    else:
+        return jsonify({'success': False, 'message': 'Invalid access code'}), 403
 
 @app.route('/set_password/<code>', methods=['POST'])
 def set_password(code):

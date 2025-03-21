@@ -13,5 +13,22 @@
         <p class="text-neutral-400">easily create a html/css/js website in seconds and deploy it to the internet for everyone to see. the goal of shortsites is to let students learn how to write websites through our modern editor.</p>
         <a href="/create" class="mt-4 text-purple-400 hover:brightness-110 transition duration-200 ease hover:scale-[1.15]">create a shortsite</a>
     </div>
+    
+    {% if sites %}
+    <div class="mt-8 flex flex-col items-center justify-center bg-zinc-900 p-6 border border-zinc-800 max-w-3xl w-full text-center rounded-lg shadow-xl">
+        <h2 class="text-2xl text-zinc-200 font-bold mb-4">Your Shortsites</h2>
+        <div class="grid gap-4 w-full">
+            {% for site in sites %}
+            <div class="flex justify-between items-center p-4 bg-zinc-800 rounded-lg">
+                <a class="text-zinc-200 underline hover:text-purple-400" href="/s/{{site.code}}">shortsite/{{ site.code }}</a>
+                <div class="flex gap-2 text-zinc-400">
+                    <a href="/s/{{ site.code }}" class="text-purple-400 hover:text-purple-300 transition">View</a>• 
+                    <a href="/edit/{{ site.code }}?code={{ site.password_hash }}" class="text-purple-400 hover:text-purple-300 transition">Edit</a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
 </body>
 </html>
