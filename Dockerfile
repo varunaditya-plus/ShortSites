@@ -4,7 +4,7 @@ WORKDIR /app
 
 COPY . /app
 
-RUN pip install flask openai jsmin rcssmin minify_html supabase dotenv
+RUN pip install flask openai jsmin rcssmin minify_html supabase python-dotenv
 
 EXPOSE 2929
 
