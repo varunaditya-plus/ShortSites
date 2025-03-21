@@ -35,6 +35,11 @@
     </script>
 </head>
 <body class="flex flex-col md:flex-row font-sans m-0 min-h-screen text-zinc-500 bg-zinc-950">
+    <div id="loading-screen" class="fixed inset-0 bg-zinc-950 z-50 flex items-center justify-center">
+        <div class="text-center">
+            <p class="mb-4 text-[#c084fc] text-3xl">Loading editor...</p>
+        </div>
+    </div>
     <main class="flex flex-col w-full">
         <div class="flex flex-col md:flex-row flex-grow w-full">
             <section class="flex-1 flex flex-col p-5 md:pr-2 pb-3 bg-background">
@@ -129,5 +134,66 @@
     </div>
 
     <script src="/static/create.js"></script>
+    <script>
+        let htmlEditor, cssEditor, jsEditor;
+        let messages = [];
+
+        const commonOptions = {
+            fontSize: 14,
+            minimap: { enabled: false },
+            automaticLayout: true,
+            scrollBeyondLastLine: false,
+            tabSize: 2,
+            wordWrap: 'on'
+        };
+
+        function initializeEditors() {
+            htmlEditor = monaco.editor.create(document.getElementById('html-editor'), {
+                ...commonOptions,
+                language: 'html',
+                value: `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Untitled ShortSite</title>
+    <style do-not-remove>[[_CSS_]]</style>
+</head>
+<body>
+    <h1>Write your html here</h1>
+    <!-- Add more HTML here -->
+    
+    <script do-not-remove>[[_JS_]]<\/script>
+</body>
+</html>`
+            });
+
+            cssEditor = monaco.editor.create(document.getElementById('css-editor'), {
+                ...commonOptions,
+                language: 'css',
+                value: `body {
+    background-color: #0f0f11;
+    color: #fff;
+    font-family: Arial, Helvetica, sans-serif;
+    text-align: center;
+}
+
+/* Add more CSS here... */`
+            });
+
+            jsEditor = monaco.editor.create(document.getElementById('js-editor'), {
+                ...commonOptions,
+                language: 'javascript',
+                value: '// Write your JavaScript here'
+            });
+
+            htmlEditor.onDidChangeModelContent(() => updatePreview());
+            cssEditor.onDidChangeModelContent(() => updatePreview());
+            jsEditor.onDidChangeModelContent(() => updatePreview());
+            updatePreview();
+
+            document.getElementById('loading-screen').style.display = 'none';
+        };
+    </script>
 </body>
 </html>

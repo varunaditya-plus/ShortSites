@@ -1,14 +1,4 @@
-let htmlEditor, cssEditor, jsEditor;
-let messages = [];
 
-const commonOptions = {
-    fontSize: 14,
-    minimap: { enabled: false },
-    automaticLayout: true,
-    scrollBeyondLastLine: false,
-    tabSize: 2,
-    wordWrap: 'on'
-};
     function sendMessage() {
         const input = document.getElementById('chat-input');
         const message = input.value.trim();
@@ -159,55 +149,6 @@ const commonOptions = {
         chatMessages.scrollTop = chatMessages.scrollHeight;
     }
 
-    document.addEventListener("DOMContentLoaded", function() {
-        require(['vs/editor/editor.main'], function() {
-            htmlEditor = monaco.editor.create(document.getElementById('html-editor'), {
-                ...commonOptions,
-                language: 'html',
-                value: `<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Untitled ShortSite</title>
-    <style do-not-remove>[[_CSS_]]</style>
-</head>
-<body>
-    <h1>Write your html here</h1>
-    <!-- Add more HTML here -->
-    
-    <script do-not-remove>[[_JS_]]</script>
-</body>
-</html>`
-            });
-
-            cssEditor = monaco.editor.create(document.getElementById('css-editor'), {
-                ...commonOptions,
-                language: 'css',
-                value: `body {
-    background-color: #0f0f11;
-    color: #fff;
-    font-family: Arial, Helvetica, sans-serif;
-    text-align: center;
-}
-
-/* Add more CSS here... */`
-            });
-
-            jsEditor = monaco.editor.create(document.getElementById('js-editor'), {
-                ...commonOptions,
-                language: 'javascript',
-                value: '// Write your JavaScript here'
-            });
-
-            htmlEditor.onDidChangeModelContent(() => updatePreview());
-            cssEditor.onDidChangeModelContent(() => updatePreview());
-            jsEditor.onDidChangeModelContent(() => updatePreview());
-
-            updatePreview();
-        });
-    });
-
     function updatePreview() {
         const html = htmlEditor.getValue();
         const css = cssEditor.getValue();
@@ -245,7 +186,7 @@ const commonOptions = {
             .then((response) => response.json())
             .then((data) => {
                 if (data.error) {
-                    showMessageModal('Error', 'An error occurred while saving your ShortSite.');
+                    showMessageModal('Error', 'An error occurred while saving your ShortSite: ' + data.error);
                 } else {
                     showMessageModal('', `
                         <p class="!mt-3 !mb-4">Your site is now published. Check it out at <a href="${data.link}" target="_blank" class="text-blue-400 underline">${data.link}</a></p>

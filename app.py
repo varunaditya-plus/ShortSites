@@ -34,37 +34,41 @@ def index():
 
 @app.route('/uploadsite', methods=['POST'])
 def uploadsite():
-    print(request.form)
-    css = request.form['css']
-    html = request.form['html']
-    js = request.form['js']
+    try:
+        print(request.form)
+        css = request.form['css']
+        html = request.form['html']
+        js = request.form['js']
 
-    domain = get_domain()
-    code = generate_code()
+        domain = get_domain()
+        code = generate_code()
 
-    checkifcodexists = supabase.table('shortsites').select('*').eq('code', code).execute()
-    if len(checkifcodexists.data) > 0: code = generate_code()
+        checkifcodexists = supabase.table('shortsites').select('*').eq('code', code).execute()
+        if len(checkifcodexists.data) > 0: code = generate_code()
 
-    access_key = ''.join(random.choices(string.ascii_letters + string.digits, k=8))
-    
-    url = f'{domain}/s/{code}'
-    response = supabase.table("shortsites").insert({
-        "html": html, 
-        "css": css, 
-        "javascript": js, 
-        "code": code,
-        "password_hash": access_key
-    }).execute()
-    print(response)
-    
-    session[f'edit_auth_{code}'] = True
-    
-    validated_codes = session.get('validated_codes', [])
-    if code not in validated_codes:
-        validated_codes.append(code)
-        session['validated_codes'] = validated_codes
-    
-    return jsonify({ 'link': url, 'access_key': access_key, 'edit_link': f'{domain}/edit/{code}?code={access_key}' })
+        access_key = ''.join(random.choices(string.ascii_letters + string.digits, k=8))
+        
+        url = f'{domain}/s/{code}'
+        response = supabase.table("shortsites").insert({
+            "html": html, 
+            "css": css, 
+            "javascript": js, 
+            "code": code,
+            "password_hash": access_key
+        }).execute()
+        print(response)
+        
+        session[f'edit_auth_{code}'] = True
+        
+        validated_codes = session.get('validated_codes', [])
+        if code not in validated_codes:
+            validated_codes.append(code)
+            session['validated_codes'] = validated_codes
+        
+        return jsonify({ 'link': url, 'access_key': access_key, 'edit_link': f'{domain}/edit/{code}?code={access_key}' })
+    except Exception as e:
+        print(f"Error uploading site: {e}")
+        return jsonify({ 'error': str(e) }), 500
 
 @app.route('/create')
 def create():
