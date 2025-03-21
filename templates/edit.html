@@ -15,6 +15,9 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.12/mode/javascript/javascript.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.12/mode/css/css.min.js"></script>
     
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/atom-one-dark.min.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
+    
     <link rel="stylesheet" href="/static/editor.css">
 </head>
 <body class="flex flex-col md:flex-row font-sans m-0 min-h-screen text-zinc-500 bg-zinc-950">
@@ -44,6 +47,15 @@
                         </button>
                     </li>
                     <li class="flex-grow tab no-hover"></li>
+                    <li>
+                        <button onclick="showTab('ai')" id="ai-tab" class="tab">
+                          <!-- Sparkle Icon -->
+                          <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="#9b56f5" viewBox="0 0 256 256" class="w-4 h-4 inline-block mb-0.5" style="filter: drop-shadow(0 0 5px #9b56f5);">
+                            <path d="M197.58,129.06,146,110l-19-51.62a15.92,15.92,0,0,0-29.88,0L78,110l-51.62,19a15.92,15.92,0,0,0,0,29.88L78,178l19,51.62a15.92,15.92,0,0,0,29.88,0L146,178l51.62-19a15.92,15.92,0,0,0,0-29.88ZM137,164.22a8,8,0,0,0-4.74,4.74L112,223.85,91.78,169A8,8,0,0,0,87,164.22L32.15,144,87,123.78A8,8,0,0,0,91.78,119L112,64.15,132.22,119a8,8,0,0,0,4.74,4.74L191.85,144ZM144,40a8,8,0,0,1,8-8h16V16a8,8,0,0,1,16,0V32h16a8,8,0,0,1,0,16H184V64a8,8,0,0,1-16,0V48H152A8,8,0,0,1,144,40ZM248,88a8,8,0,0,1-8,8h-8v8a8,8,0,0,1-16,0V96h-8a8,8,0,0,1,0-16h8V72a8,8,0,0,1,16,0v8h8A8,8,0,0,1,248,88Z"></path>
+                          </svg>
+                          AI
+                        </button>
+                      </li>
                 </ul>
 
                 <!-- HTML Editor -->
@@ -59,6 +71,23 @@
                 <!-- JS Editor -->
                 <div id="js-editor-container" class="editor-container hidden">
                     <div id="js-editor" class="w-full h-48 md:h-64 border border-input"></div>
+                </div>
+
+                <div id="ai-editor-container" class="editor-container hidden h-full">
+                    <div class="w-full h-full bg-[#0f0f11] rounded shadow-md flex flex-col">
+                    <div id="chat-messages" class="flex-grow overflow-y-auto p-3 space-y-2 text-sm text-zinc-300"></div>
+                    <div class="p-2 border-t border-zinc-800 flex">
+                        <input id="chat-input" type="text" placeholder="Ask the AI for help with your site..." 
+                            class="flex-grow bg-[#161619] text-zinc-300 placeholder-zinc-700 p-2 rounded-l outline-none border-none" 
+                            onkeydown="if(event.key === 'Enter') sendMessage()">
+                        <button onclick="sendMessage()" class="bg-[#c084fc] hover:bg-[#c997fb] text-[#0b0e14] font-semibold p-2 rounded-r">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4">
+                            <line x1="22" y1="2" x2="11" y2="13"></line>
+                            <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                        </svg>
+                        </button>
+                    </div>
+                    </div>
                 </div>
             </section>
 
@@ -94,6 +123,189 @@
     <script>
         let htmlEditor, cssEditor, jsEditor;
         const siteCode = '{{ code|safe }}';
+        let messages = [];
+
+                // Add the chat functionality
+                function sendMessage() {
+            const input = document.getElementById('chat-input');
+            const message = input.value.trim();
+            if (!message) return;
+
+            // Add the user message to the conversation history
+            messages.push({ role: 'user', content: message });
+            
+            // Clear input
+            input.value = '';
+            
+            // Add user message to chat
+            addMessageToChat('user', message);
+            
+            // Show loading indicator
+            const loadingId = 'loading-message-' + Date.now();
+            addMessageToChat('assistant', '...', loadingId);
+            
+            // Get current code from editors
+            const html = htmlEditor.getValue();
+            const css = cssEditor.getValue();
+            const js = jsEditor.getValue();
+            
+            // Create a message container for the AI response
+            const chatMessages = document.getElementById('chat-messages');
+            const aiMessageDiv = document.createElement('div');
+            aiMessageDiv.className = 'p-2 rounded bg-[#894cc6] mr-8';
+            aiMessageDiv.id = 'ai-response-' + Date.now();
+            
+            const iconSpan = document.createElement('span');
+            iconSpan.className = 'font-bold';
+            iconSpan.textContent = 'AI: ';
+            
+            const contentSpan = document.createElement('span');
+            contentSpan.id = 'ai-content-' + Date.now();
+            contentSpan.textContent = '';
+            
+            aiMessageDiv.appendChild(iconSpan);
+            aiMessageDiv.appendChild(contentSpan);
+            
+            document.getElementById(loadingId)?.remove();
+            chatMessages.appendChild(aiMessageDiv);
+            
+            fetch('/ai', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    messages: messages,
+                    html: html,
+                    css: css,
+                    js: js
+                }),
+            })
+            .then(response => {
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                let buffer = '';
+                let fullResponse = '';
+                
+                function processStream() {
+                    return reader.read().then(({ done, value }) => {
+                        if (done) {
+                            contentSpan.innerHTML = formatAIResponse(fullResponse);
+                            contentSpan.querySelectorAll('pre code').forEach((el) => {
+                            hljs.highlightElement(el);
+                            });
+                            chatMessages.scrollTop = chatMessages.scrollHeight;
+                            
+                            messages.push({ role: 'assistant', content: fullResponse });
+                            return;
+                        }
+                        
+                        // Decode the chunk and add it to our buffer
+                        const chunk = decoder.decode(value, { stream: true });
+                        buffer += chunk;
+                        
+                        // Process complete SSE messages in the buffer
+                        let lines = buffer.split('\n\n');
+                        buffer = lines.pop() || ''; // Keep the last incomplete chunk in the buffer
+                        
+                        for (const line of lines) {
+                            if (line.startsWith('data: ')) {
+                                try {
+                                    const data = JSON.parse(line.substring(6));
+                                    
+                                    if (data.content === '[DONE]') {
+                                        return; // End of stream
+                                    }
+                                    
+                                    // Add to full response
+                                    fullResponse += data.content;
+                                    
+                                    // Update with formatted content
+                                    contentSpan.innerHTML = formatAIResponse(fullResponse);
+                                    contentSpan.querySelectorAll('pre code').forEach((el) => {
+                                    hljs.highlightElement(el);
+                                    });
+                                    
+                                    // Scroll to bottom
+                                    chatMessages.scrollTop = chatMessages.scrollHeight;
+                                } catch (e) {
+                                    console.error('Error parsing SSE data:', e);
+                                }
+                            }
+                        }
+                        
+                        // Continue reading
+                        return processStream();
+                    });
+                }
+                
+                return processStream();
+            })
+            .catch(error => {
+                console.error('Error with AI request:', error);
+                contentSpan.innerHTML += "<br>[Error: Could not connect to AI service]";
+            });
+        }
+        
+        function formatAIResponse(text) {
+            if (!text) return '';
+
+            // Store code blocks in an array and replace them with placeholders
+            const codeBlocks = [];
+            text = text.replace(/```(\w+)?\s*([\s\S]*?)\s*```/g, function(match, language, code) {
+                codeBlocks.push({
+                language: language || 'plaintext',
+                code: code // Keep original newlines here
+                });
+                return `%%%CODEBLOCK${codeBlocks.length - 1}%%%`;
+            });
+
+            // Replace newlines with <br> for the remaining text (non-code block parts)
+            text = text.replace(/\n/g, '<br>');
+
+            // Restore code blocks without converting newlines to <br>
+            codeBlocks.forEach((block, index) => {
+                const escapedCode = escapeHtml(block.code);
+                const codeHTML = `<pre><code class="language-${block.language}">${escapedCode}</code></pre>`;
+                text = text.replace(`%%%CODEBLOCK${index}%%%`, codeHTML);
+            });
+
+            // Format inline code (this will affect only text outside of code blocks)
+            text = text.replace(/`([^`]+)`/g, '<code class="inline-code">$1</code>');
+
+            return text;
+            }
+
+            // Helper function to escape HTML
+        function escapeHtml(unsafe) {
+            return unsafe
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+        
+        function addMessageToChat(role, content, id = null) {
+            const chatMessages = document.getElementById('chat-messages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `p-2 rounded ${role === 'user' ? 'bg-[#1a1a1f] ml-8' : 'bg-[#894cc6] mr-8'}`;
+            if (id) messageDiv.id = id;
+            
+            const iconSpan = document.createElement('span');
+            iconSpan.className = 'font-bold';
+            iconSpan.textContent = role === 'user' ? 'You: ' : 'AI: ';
+            
+            const contentSpan = document.createElement('span');
+            contentSpan.textContent = content;
+            
+            messageDiv.appendChild(iconSpan);
+            messageDiv.appendChild(contentSpan);
+            chatMessages.appendChild(messageDiv);
+            
+            // Scroll to bottom
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
 
         document.addEventListener("DOMContentLoaded", function() {
             // Initialize CodeMirror editors
