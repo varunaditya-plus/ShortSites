@@ -88,7 +88,7 @@ def ai():
     if request.method == "POST":
         try:
             data = request.get_json()
-            user_message = data.get('message', '')
+            client_messages = data.get('messages', [])
             html_code = data.get('html', '')
             css_code = data.get('css', '')
             js_code = data.get('js', '')
@@ -112,15 +112,15 @@ def ai():
             {js_code}
             ```
             
-            Provide helpful, very short and concise responses about web development. Do not respond with full code to copy and paste, instead explain and teach the user.
+            Provide helpful, very short and concise responses about web development. Always aim to explain and teach the user.
+            When writing code for the html, always make sure to include `<style do-not-remove>[[_CSS_]]</style>` in the head of the html. and `<script do-not-remove>[[_JS_]]</script>` in the body of the html.
             """
+
+            conversation = [{"role": "system", "content": system_message}] + client_messages
             
             response = openai.chat.completions.create(
                 model="gpt-4o-mini",
-                messages=[
-                    {"role": "system", "content": system_message},
-                    {"role": "user", "content": user_message}
-                ],
+                messages=conversation,
                 max_tokens=1000,
                 temperature=0.7,
                 stream=True  # Enable streaming

@@ -115,3 +115,79 @@ select {
 .cm-s-ayu-dark .CodeMirror-gutters {
     background: #111113 !important;
 }
+
+/* AI STUFF */
+
+.code-block {
+    background-color: #1f2937;
+    border-radius: 4px;
+    margin: 10px 0;
+    overflow: hidden;
+    width: 100%;
+    max-width: calc(100% - 20px);
+    margin: 10px auto;
+}
+.code-header {
+    background-color: #374151;
+    color: #e5e7eb;
+    font-size: 0.8rem;
+    padding: 4px 10px;
+    font-family: monospace;
+    border-bottom: 1px solid #4b5563;
+}
+.code-block pre {
+    margin: 0;
+    padding: 10px;
+    overflow-x: auto;
+    font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
+    font-size: 0.9rem;
+    line-height: 1.5;
+    background-color: #1f2937;
+}
+.code-block code {
+    white-space: pre-wrap;
+    word-break: break-all;
+}
+.inline-code {
+    background-color: #374151;
+    border-radius: 3px;
+    padding: 2px 4px;
+    font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
+    font-size: 0.9em;
+    color: #e5e7eb;
+}
+
+/* Syntax highlighting colors */
+.language-html .keyword,
+.language-xml .keyword { color: #c678dd; }
+.language-html .tag,
+.language-xml .tag { color: #e06c75; }
+.language-html .attr,
+.language-xml .attr { color: #d19a66; }
+.language-html .string,
+.language-xml .string { color: #98c379; }
+.language-html .comment,
+.language-xml .comment { color: #7f848e; font-style: italic; }
+
+.language-css .property { color: #61afef; }
+.language-css .selector { color: #e06c75; }
+.language-css .value { color: #98c379; }
+.language-css .punctuation { color: #abb2bf; }
+.language-css .comment { color: #7f848e; font-style: italic; }
+
+.language-javascript .keyword,
+.language-js .keyword { color: #c678dd; }
+.language-javascript .string,
+.language-js .string { color: #98c379; }
+.language-javascript .number,
+.language-js .number { color: #d19a66; }
+.language-javascript .function,
+.language-js .function { color: #61afef; }
+.language-javascript .comment,
+.language-js .comment { color: #7f848e; font-style: italic; }
+.language-plaintext { color: #abb2bf; }
+
+.hljs {
+    background: #552d7e !important;
+    border-radius: 0.25rem !important;
+}
