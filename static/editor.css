@@ -103,19 +103,6 @@ select {
     margin-bottom: 10px;
 }
 
-/* Make CodeMirror fill the container */
-.CodeMirror {
-    height: 100%;
-}
-
-.cm-s-ayu-dark.CodeMirror {
-    background: #0f0f11 !important;
-}
-
-.cm-s-ayu-dark .CodeMirror-gutters {
-    background: #111113 !important;
-}
-
 /* AI STUFF */
 
 .code-block {
@@ -190,4 +177,9 @@ select {
 .hljs {
     background: #552d7e !important;
     border-radius: 0.25rem !important;
+}
+
+
+.monaco-editor .focused .selectionHighlight {
+    background-color: #33333b36 !important;
 }

@@ -6,19 +6,33 @@
     <title>Edit Shortsite</title>
     <script src="https://cdn.tailwindcss.com"></script>
 
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.12/codemirror.min.css" />
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/theme/ayu-dark.min.css" />
-    
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.12/codemirror.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.12/mode/htmlmixed/htmlmixed.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.12/mode/xml/xml.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.12/mode/javascript/javascript.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.12/mode/css/css.min.js"></script>
-    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs/loader.min.js"></script>
+
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/atom-one-dark.min.css" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
     
     <link rel="stylesheet" href="/static/editor.css">
+
+    <script>
+        require.config({ paths: { vs: 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs' }});
+        
+        document.addEventListener("DOMContentLoaded", function() {
+            require(['vs/editor/editor.main'], function() {
+                fetch('/static/monaco_shortsites.json')
+                    .then(response => response.json())
+                    .then(themeData => {
+                        monaco.editor.defineTheme('shortsites', themeData);
+                        monaco.editor.setTheme('shortsites');
+                        
+                        initializeEditors();
+                    })
+                    .catch(error => {
+                        console.error('Error loading theme:', error);
+                        initializeEditors();
+                    });
+            });
+        });
+    </script>
 </head>
 <body class="flex flex-col md:flex-row font-sans m-0 min-h-screen text-zinc-500 bg-zinc-950">
     <main class="flex flex-col w-full">
@@ -120,345 +134,44 @@
         <button onclick="hideMessageModal()" class="absolute top-3.5 right-5 p-1 closemdl">✕</button>
     </div>
 
+    <script src="/static/edit.js"></script>
     <script>
         let htmlEditor, cssEditor, jsEditor;
         const siteCode = '{{ code|safe }}';
-        let messages = [];
 
-                // Add the chat functionality
-                function sendMessage() {
-            const input = document.getElementById('chat-input');
-            const message = input.value.trim();
-            if (!message) return;
-
-            // Add the user message to the conversation history
-            messages.push({ role: 'user', content: message });
-            
-            // Clear input
-            input.value = '';
-            
-            // Add user message to chat
-            addMessageToChat('user', message);
-            
-            // Show loading indicator
-            const loadingId = 'loading-message-' + Date.now();
-            addMessageToChat('assistant', '...', loadingId);
-            
-            // Get current code from editors
-            const html = htmlEditor.getValue();
-            const css = cssEditor.getValue();
-            const js = jsEditor.getValue();
-            
-            // Create a message container for the AI response
-            const chatMessages = document.getElementById('chat-messages');
-            const aiMessageDiv = document.createElement('div');
-            aiMessageDiv.className = 'p-2 rounded bg-[#894cc6] mr-8';
-            aiMessageDiv.id = 'ai-response-' + Date.now();
-            
-            const iconSpan = document.createElement('span');
-            iconSpan.className = 'font-bold';
-            iconSpan.textContent = 'AI: ';
-            
-            const contentSpan = document.createElement('span');
-            contentSpan.id = 'ai-content-' + Date.now();
-            contentSpan.textContent = '';
-            
-            aiMessageDiv.appendChild(iconSpan);
-            aiMessageDiv.appendChild(contentSpan);
-            
-            document.getElementById(loadingId)?.remove();
-            chatMessages.appendChild(aiMessageDiv);
-            
-            fetch('/ai', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    messages: messages,
-                    html: html,
-                    css: css,
-                    js: js
-                }),
-            })
-            .then(response => {
-                const reader = response.body.getReader();
-                const decoder = new TextDecoder();
-                let buffer = '';
-                let fullResponse = '';
-                
-                function processStream() {
-                    return reader.read().then(({ done, value }) => {
-                        if (done) {
-                            contentSpan.innerHTML = formatAIResponse(fullResponse);
-                            contentSpan.querySelectorAll('pre code').forEach((el) => {
-                            hljs.highlightElement(el);
-                            });
-                            chatMessages.scrollTop = chatMessages.scrollHeight;
-                            
-                            messages.push({ role: 'assistant', content: fullResponse });
-                            return;
-                        }
-                        
-                        // Decode the chunk and add it to our buffer
-                        const chunk = decoder.decode(value, { stream: true });
-                        buffer += chunk;
-                        
-                        // Process complete SSE messages in the buffer
-                        let lines = buffer.split('\n\n');
-                        buffer = lines.pop() || ''; // Keep the last incomplete chunk in the buffer
-                        
-                        for (const line of lines) {
-                            if (line.startsWith('data: ')) {
-                                try {
-                                    const data = JSON.parse(line.substring(6));
-                                    
-                                    if (data.content === '[DONE]') {
-                                        return; // End of stream
-                                    }
-                                    
-                                    // Add to full response
-                                    fullResponse += data.content;
-                                    
-                                    // Update with formatted content
-                                    contentSpan.innerHTML = formatAIResponse(fullResponse);
-                                    contentSpan.querySelectorAll('pre code').forEach((el) => {
-                                    hljs.highlightElement(el);
-                                    });
-                                    
-                                    // Scroll to bottom
-                                    chatMessages.scrollTop = chatMessages.scrollHeight;
-                                } catch (e) {
-                                    console.error('Error parsing SSE data:', e);
-                                }
-                            }
-                        }
-                        
-                        // Continue reading
-                        return processStream();
-                    });
-                }
-                
-                return processStream();
-            })
-            .catch(error => {
-                console.error('Error with AI request:', error);
-                contentSpan.innerHTML += "<br>[Error: Could not connect to AI service]";
-            });
-        }
+        const commonOptions = {
+            fontSize: 14,
+            minimap: { enabled: false },
+            automaticLayout: true,
+            scrollBeyondLastLine: false,
+            tabSize: 2,
+            wordWrap: 'on'
+        };
         
-        function formatAIResponse(text) {
-            if (!text) return '';
-
-            // Store code blocks in an array and replace them with placeholders
-            const codeBlocks = [];
-            text = text.replace(/```(\w+)?\s*([\s\S]*?)\s*```/g, function(match, language, code) {
-                codeBlocks.push({
-                language: language || 'plaintext',
-                code: code // Keep original newlines here
-                });
-                return `%%%CODEBLOCK${codeBlocks.length - 1}%%%`;
-            });
-
-            // Replace newlines with <br> for the remaining text (non-code block parts)
-            text = text.replace(/\n/g, '<br>');
-
-            // Restore code blocks without converting newlines to <br>
-            codeBlocks.forEach((block, index) => {
-                const escapedCode = escapeHtml(block.code);
-                const codeHTML = `<pre><code class="language-${block.language}">${escapedCode}</code></pre>`;
-                text = text.replace(`%%%CODEBLOCK${index}%%%`, codeHTML);
-            });
-
-            // Format inline code (this will affect only text outside of code blocks)
-            text = text.replace(/`([^`]+)`/g, '<code class="inline-code">$1</code>');
-
-            return text;
-            }
-
-            // Helper function to escape HTML
-        function escapeHtml(unsafe) {
-            return unsafe
-                .replace(/&/g, "&amp;")
-                .replace(/</g, "&lt;")
-                .replace(/>/g, "&gt;")
-                .replace(/"/g, "&quot;")
-                .replace(/'/g, "&#039;");
-        }
-        
-        function addMessageToChat(role, content, id = null) {
-            const chatMessages = document.getElementById('chat-messages');
-            const messageDiv = document.createElement('div');
-            messageDiv.className = `p-2 rounded ${role === 'user' ? 'bg-[#1a1a1f] ml-8' : 'bg-[#894cc6] mr-8'}`;
-            if (id) messageDiv.id = id;
-            
-            const iconSpan = document.createElement('span');
-            iconSpan.className = 'font-bold';
-            iconSpan.textContent = role === 'user' ? 'You: ' : 'AI: ';
-            
-            const contentSpan = document.createElement('span');
-            contentSpan.textContent = content;
-            
-            messageDiv.appendChild(iconSpan);
-            messageDiv.appendChild(contentSpan);
-            chatMessages.appendChild(messageDiv);
-            
-            // Scroll to bottom
-            chatMessages.scrollTop = chatMessages.scrollHeight;
-        }
-
-        document.addEventListener("DOMContentLoaded", function() {
-            // Initialize CodeMirror editors
-            const commonOptions = {
-                lineNumbers: true,
-                theme: 'ayu-dark',
-                tabSize: 2,
-                indentWithTabs: false,
-                styleActiveLine: true,
-                matchBrackets: true,
-            };
-
-            htmlEditor = CodeMirror(document.getElementById('html-editor'), {
+        function initializeEditors() {
+            htmlEditor = monaco.editor.create(document.getElementById('html-editor'), {
                 ...commonOptions,
-                value: decodeURIComponent('{{ html|urlencode }}'),
-                mode: 'htmlmixed'
+                language: 'html',
+                value: decodeURIComponent('{{ html|urlencode }}')
             });
 
-            cssEditor = CodeMirror(document.getElementById('css-editor'), {
+            cssEditor = monaco.editor.create(document.getElementById('css-editor'), {
                 ...commonOptions,
-                value: decodeURIComponent('{{ css|urlencode }}'),
-                mode: 'css'
+                language: 'css',
+                value: decodeURIComponent('{{ css|urlencode }}')
             });
 
-            jsEditor = CodeMirror(document.getElementById('js-editor'), {
+            jsEditor = monaco.editor.create(document.getElementById('js-editor'), {
                 ...commonOptions,
-                value: decodeURIComponent('{{ js|urlencode }}'),
-                mode: 'javascript'
+                language: 'javascript',
+                value: decodeURIComponent('{{ js|urlencode }}')
             });
 
-            function updatePreview() {
-                const html = htmlEditor.getValue();
-                const css = `<style>${cssEditor.getValue()}</style>`;
-                const js = `<script>${jsEditor.getValue()}<\/script>`;
-                const content = `
-                    <!DOCTYPE html>
-                    <html lang="en">
-                    <head>
-                        <meta charset="UTF-8">
-                        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                        <title>Preview</title>
-                        ${css}
-                    </head>
-                    <body>
-                        ${html}
-                        ${js}
-                    </body>
-                    </html>
-                `;
-                const previewFrame = document.getElementById('preview-frame');
-                const previewDocument = previewFrame.contentDocument || previewFrame.contentWindow.document;
-                previewDocument.open();
-                previewDocument.write(content);
-                previewDocument.close();
-            }
-
-            htmlEditor.on("change", updatePreview);
-            cssEditor.on("change", updatePreview);
-            jsEditor.on("change", updatePreview);
-
+            htmlEditor.onDidChangeModelContent(() => updatePreview());
+            cssEditor.onDidChangeModelContent(() => updatePreview());
+            jsEditor.onDidChangeModelContent(() => updatePreview());
             updatePreview();
-
-            window.saveSite = function () {
-                const html = htmlEditor.getValue();
-                const css = cssEditor.getValue();
-                const js = jsEditor.getValue();
-
-                const formData = new URLSearchParams();
-                formData.append('html', html);
-                formData.append('css', css);
-                formData.append('js', js);
-                formData.append('code', siteCode);
-
-                fetch('/update_site', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                    },
-                    body: formData,
-                })
-                .then((response) => response.json())
-                .then((data) => {
-                    if (data.error) {
-                        showMessageModal('Error', 'An error occurred while updating your ShortSite.');
-                    } else {
-                        showMessageModal('Success', `
-                            <p>Your ShortSite has been updated!</p>
-                            <p>Visit it at: <a href="/s/${siteCode}" target="_blank" class="text-blue-400 underline">/s/${siteCode}</a></p>
-                        `);
-                    }
-                });
-            };
-
-            function showMessageModal(title, content) {
-                const modal = document.getElementById('message-modal');
-                const modalTitle = document.getElementById('message-title');
-                const modalContent = document.getElementById('message-content');
-
-                modalTitle.textContent = title;
-                modalContent.innerHTML = content;
-                modal.style.display = 'block';
-            }
-
-            window.hideMessageModal = function() {
-                const modal = document.getElementById('message-modal');
-                modal.style.display = 'none';
-            }
-
-            // Tab switch logic
-            window.showTab = function(editor) {
-                document.querySelectorAll('.editor-container').forEach(container => container.classList.add('hidden'));
-                document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
-
-                document.getElementById(editor + '-editor-container').classList.remove('hidden');
-                document.getElementById(editor + '-tab').classList.add('active');
-                
-                // Refresh CodeMirror to avoid display issues when switching tabs
-                if (editor === 'html') htmlEditor.refresh();
-                if (editor === 'css') cssEditor.refresh();
-                if (editor === 'js') jsEditor.refresh();
-            }
-
-            // Set password functionality
-            document.getElementById('set-password-btn').addEventListener('click', function() {
-                const password = document.getElementById('password-input').value;
-                if (password.trim() === '') {
-                    showMessageModal('Error', 'Please enter an access code');
-                    return;
-                }
-                
-                // Send the password to the server
-                fetch(`/set_password/${siteCode}`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                    },
-                    body: `password=${encodeURIComponent(password)}`
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.authorized) {
-                        showMessageModal('Success', 'Access code set successfully!');
-                        document.getElementById('password-input').value = '';
-                    } else {
-                        showMessageModal('Error', data.message || 'Failed to set access code');
-                    }
-                })
-                .catch(error => {
-                    showMessageModal('Error', 'An error occurred');
-                    console.error('Error:', error);
-                });
-            });
-        });
+        }
     </script>
 </body>
 </html>
