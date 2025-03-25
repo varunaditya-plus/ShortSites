@@ -11,7 +11,7 @@ introduce people to web development using one-click deploy.
 [Features](#features) •
 [Notes](#notes)
 
-<img src="https://go-skill-icons.vercel.app/api/icons?i=html,js,flask,vscode,supabase,chatgpt,tailwind&theme=dark" />
+<img src="https://go-skill-icons.vercel.app/api/icons?i=html,js,flask,vscode,supabase,chatgpt,tailwind,gcp,docker&theme=dark" />
 
 </div>
 
