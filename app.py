@@ -214,5 +214,19 @@ def set_password(code):
     supabase.table('shortsites').update({ 'password_hash': password }).eq('code', code).execute()
     return jsonify({'success': True})
 
+@app.route('/tutorials')
+def tutorials():
+    return render_template('tutorials.html')
+
+@app.route('/tutorials/<tutorial_name>')
+def tutorial(tutorial_name):
+    if not os.path.exists(f'templates/tutorials/{tutorial_name}.html'):
+        return render_template("site_not_found.html"), 404
+    return render_template(f'tutorials/{tutorial_name}.html')
+
+@app.route('/about')
+def about():
+    return render_template('about.html')
+
 if __name__ == '__main__':
     app.run(debug=False, port=2929, host="0.0.0.0")
