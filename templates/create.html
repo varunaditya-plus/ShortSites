@@ -11,14 +11,14 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/atom-one-dark.min.css" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
     
-    <link rel="stylesheet" href="/static/editor.css">
+    <link rel="stylesheet" href="/static/styles/editor.css">
 
     <script>
         require.config({ paths: { vs: 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs' }});
         
         document.addEventListener("DOMContentLoaded", function() {
             require(['vs/editor/editor.main'], function() {
-                fetch('/static/monaco_shortsites.json')
+                fetch('/static/assets/monaco_shortsites.json')
                     .then(response => response.json())
                     .then(themeData => {
                         monaco.editor.defineTheme('shortsites', themeData);
@@ -133,7 +133,7 @@
         <button onclick="hideMessageModal()" class="absolute top-3.5 right-5 p-1 closemdl">✕</button>
     </div>
 
-    <script src="/static/create.js"></script>
+    <script src="/static/scripts/create.js"></script>
     <script>
         let htmlEditor, cssEditor, jsEditor;
         let messages = [];
