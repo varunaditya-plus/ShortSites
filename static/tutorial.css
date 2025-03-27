@@ -1,0 +1,10 @@
+.tag { color: #c084fc; }
+.text { color: #e0e0e0; }
+.string { color: #56d4fb; }
+.par { color: #ffb86c; }
+.num { color: #f1fa8c }
+.prth { color: #ffd700 }
+.innerprth { color: #da70d6 }
+.comment { color: #65656c }
+* { scrollbar-width: none; }
+.error { color: #ff5555; }
