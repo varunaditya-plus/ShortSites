@@ -9,7 +9,6 @@ import { Button } from '@/components/ui/button';
 import { IoLogoHtml5 } from 'react-icons/io';
 import { IoLogoJavascript } from 'react-icons/io5';
 import { IoLogoCss3 } from 'react-icons/io';
-import { supabase } from '@/lib/supabase';
 import { setEditAuth, addValidatedCode } from '@/lib/auth';
 import AiEditor from '@/components/aieditor';
 import '../styles/editor.css';
@@ -97,47 +96,39 @@ export default function Editor() {
       }
 
       try {
-        // Check if authorized via access code in URL
-        if (accessCode) {
-          const { data } = await supabase
-            .from('shortsites')
-            .select('*')
-            .eq('code', code)
-            .single();
+        // Build API URL with access code if present
+        const apiUrl = accessCode 
+          ? `/api/sites/${code}?code=${encodeURIComponent(accessCode)}`
+          : `/api/sites/${code}`;
 
-          if (data && data.password_hash === accessCode) {
+        const response = await fetch(apiUrl);
+        const result = await response.json();
+
+        if (!response.ok || !result.data) {
+          // Site not found or not authorized - redirect to site view
+          router.push(`/s/${code}`);
+          return;
+        }
+
+        const data = result.data;
+
+        // If authorized (via access code or cookies), load the site
+        // Server handles setting auth cookies when access code is valid
+        if (data.authorized) {
+          // Update client-side auth state (cookies are already set by server)
+          if (accessCode) {
             setEditAuth(code, true);
             addValidatedCode(code);
-            setHtml(data.html || '');
-            setCss(data.css || '');
-            setJs(data.javascript || '');
-            setLoading(false);
-            return;
           }
+
+          setHtml(data.html || '');
+          setCss(data.css || '');
+          setJs(data.javascript || '');
+          setLoading(false);
+        } else {
+          // Not authorized - redirect to site view
+          router.push(`/s/${code}`);
         }
-
-        // Check if already authorized via cookies
-        const authResponse = await fetch(`/api/check_auth/${code}`);
-        const authData = await authResponse.json();
-
-        if (authData.authorized) {
-          const { data } = await supabase
-            .from('shortsites')
-            .select('*')
-            .eq('code', code)
-            .single();
-
-          if (data) {
-            setHtml(data.html || '');
-            setCss(data.css || '');
-            setJs(data.javascript || '');
-            setLoading(false);
-            return;
-          }
-        }
-
-        // Not authorized - redirect to site view
-        router.push(`/s/${code}`);
       } catch (error) {
         console.error('Error loading site:', error);
         setLoading(false);

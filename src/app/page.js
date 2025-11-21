@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { supabase } from '@/lib/supabase';
 import { getValidatedCodes } from '@/lib/auth';
 import { ArrowRightIcon } from '@phosphor-icons/react';
 
@@ -13,13 +12,17 @@ export default function Home() {
     const loadSites = async () => {
       const validatedCodes = getValidatedCodes();
       if (validatedCodes.length > 0) {
-        const { data } = await supabase
-          .from('shortsites')
-          .select('*')
-          .in('code', validatedCodes);
-        
-        if (data) {
-          setSites(data);
+        try {
+          const response = await fetch(`/api/sites?codes=${validatedCodes.join(',')}`);
+          const result = await response.json();
+          
+          if (response.ok && result.data) {
+            setSites(result.data);
+          } else {
+            console.error('Error loading sites:', result.error);
+          }
+        } catch (error) {
+          console.error('Error loading sites:', error);
         }
       }
     };

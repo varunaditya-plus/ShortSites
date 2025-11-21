@@ -3,12 +3,12 @@ set -e
 
 # Export environment variables if they're set
 # This ensures they're available to the Node.js process
-if [ -n "$NEXT_PUBLIC_SUPABASE_URL" ]; then
-  export NEXT_PUBLIC_SUPABASE_URL="$NEXT_PUBLIC_SUPABASE_URL"
+if [ -n "$SUPABASE_URL" ]; then
+  export SUPABASE_URL="$SUPABASE_URL"
 fi
 
-if [ -n "$NEXT_PUBLIC_SUPABASE_KEY" ]; then
-  export NEXT_PUBLIC_SUPABASE_KEY="$NEXT_PUBLIC_SUPABASE_KEY"
+if [ -n "$SUPABASE_KEY" ]; then
+  export SUPABASE_KEY="$SUPABASE_KEY"
 fi
 
 if [ -n "$OPENAI_API_KEY" ]; then

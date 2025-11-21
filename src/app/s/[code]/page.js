@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
-import { supabase } from '@/lib/supabase';
 import { setEditAuth, addValidatedCode } from '@/lib/auth';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -21,17 +20,16 @@ export default function SitePage() {
   useEffect(() => {
     const loadSite = async () => {
       try {
-        const { data, error } = await supabase
-          .from('shortsites')
-          .select('*')
-          .eq('code', code)
-          .single();
+        const response = await fetch(`/api/sites/${code}`);
+        const result = await response.json();
 
-        if (error || !data) {
+        if (!response.ok || !result.data) {
           // Site not found - could redirect to 404 page
           setLoading(false);
           return;
         }
+
+        const data = result.data;
 
         // Combine HTML, CSS, and JS
         let html = data.html || '';
@@ -43,11 +41,7 @@ export default function SitePage() {
         html = html.replace(/<script do-not-remove>[\s\S]*?<\/script>/, `<script>${js}</script>`);
 
         setSiteContent(html);
-
-        // Check authorization
-        const authResponse = await fetch(`/api/check_auth/${code}`);
-        const authData = await authResponse.json();
-        setIsAuthorized(authData.authorized || false);
+        setIsAuthorized(data.authorized || false);
         setLoading(false);
       } catch (error) {
         console.error('Error loading site:', error);
