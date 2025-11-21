@@ -39,6 +39,10 @@ ENV NODE_ENV=production
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
+# Copy entrypoint script
+COPY docker-entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
 # Copy necessary files from builder
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next/standalone ./
@@ -50,15 +54,16 @@ RUN chown -R nextjs:nodejs /app
 USER nextjs
 
 # Environment variables for runtime
-# These can be overridden by GCP environment variables at runtime
-# Note: NEXT_PUBLIC_ vars are baked into the build, but can be set here for reference
-ENV NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL:-}
-ENV NEXT_PUBLIC_SUPABASE_KEY=${NEXT_PUBLIC_SUPABASE_KEY:-}
-ENV OPENAI_API_KEY=${OPENAI_API_KEY:-}
+# These will be set by GCP environment variables at runtime
+# Note: NEXT_PUBLIC_ vars should ideally be set at build time, but can be overridden here
+ENV NEXT_PUBLIC_SUPABASE_URL=""
+ENV NEXT_PUBLIC_SUPABASE_KEY=""
+ENV OPENAI_API_KEY=""
 
 EXPOSE 3000
 
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
+ENTRYPOINT ["docker-entrypoint.sh"]
 CMD ["node", "server.js"]

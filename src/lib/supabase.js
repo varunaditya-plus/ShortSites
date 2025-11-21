@@ -1,7 +1,19 @@
 import { createClient } from '@supabase/supabase-js';
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
-const SUPABASE_KEY = process.env.NEXT_PUBLIC_SUPABASE_KEY || process.env.SUPABASE_KEY;
+// Get environment variables - check both NEXT_PUBLIC_ and non-prefixed versions
+// This allows runtime environment variables to work (though NEXT_PUBLIC_ should ideally be at build time)
+function getEnvVar(name) {
+  if (typeof window !== 'undefined') {
+    // Client-side: NEXT_PUBLIC_ vars are embedded at build time
+    return process.env[`NEXT_PUBLIC_${name}`] || process.env[name];
+  } else {
+    // Server-side: can read from runtime environment
+    return process.env[`NEXT_PUBLIC_${name}`] || process.env[name];
+  }
+}
+
+const SUPABASE_URL = getEnvVar('SUPABASE_URL');
+const SUPABASE_KEY = getEnvVar('SUPABASE_KEY');
 
 // Create a function to get the client
 // During build time, if env vars are missing, use placeholders to allow build to complete
@@ -11,8 +23,15 @@ function getSupabaseClient() {
   const key = SUPABASE_KEY || 'placeholder-key';
   
   // Only throw at runtime if we're actually missing the real values
-  if ((!SUPABASE_URL || !SUPABASE_KEY) && typeof window !== 'undefined') {
-    throw new Error('Missing Supabase environment variables');
+  // Check both client and server side
+  if (!SUPABASE_URL || !SUPABASE_KEY) {
+    if (typeof window !== 'undefined') {
+      // Client-side error
+      throw new Error('Missing Supabase environment variables. NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_KEY must be set.');
+    } else {
+      // Server-side error
+      throw new Error('Missing Supabase environment variables. NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_KEY must be set.');
+    }
   }
   
   return createClient(url, key);
@@ -23,9 +42,12 @@ export const supabase = getSupabaseClient();
 
 // Server-side Supabase client (for API routes)
 export function createServerClient() {
-  if (!SUPABASE_URL || !SUPABASE_KEY) {
-    throw new Error('Missing Supabase environment variables');
+  const url = getEnvVar('SUPABASE_URL');
+  const key = getEnvVar('SUPABASE_KEY');
+  
+  if (!url || !key) {
+    throw new Error('Missing Supabase environment variables. NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_KEY must be set.');
   }
-  return createClient(SUPABASE_URL, SUPABASE_KEY);
+  return createClient(url, key);
 }
 
