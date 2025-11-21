@@ -1,7 +1,16 @@
 'use client';
 
+import { Suspense } from 'react';
 import Editor from '@/pages/editor';
 
-export default function CreatePage() {
+function EditorWrapper() {
   return <Editor />;
+}
+
+export default function CreatePage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <EditorWrapper />
+    </Suspense>
+  );
 }
