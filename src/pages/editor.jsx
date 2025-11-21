@@ -11,6 +11,7 @@ import { IoLogoJavascript } from 'react-icons/io5';
 import { IoLogoCss3 } from 'react-icons/io';
 import { supabase } from '@/lib/supabase';
 import { setEditAuth, addValidatedCode } from '@/lib/auth';
+import AiEditor from '@/components/aieditor';
 import '../styles/editor.css';
 
 const MonacoEditor = dynamic(() => import('@monaco-editor/react'), { ssr: false });
@@ -32,7 +33,7 @@ const defaultHTML = `<!DOCTYPE html>
 </html>`;
 
 const defaultCSS = `body {
-    background-color: #252525;
+    background-color: #1a1a1a;
     color: #fff;
     font-family: Arial, Helvetica, sans-serif;
     text-align: center;
@@ -83,6 +84,10 @@ export default function Editor() {
   const lastXRef = useRef(0);
   const lastYRef = useRef(0);
   const mainRef = useRef(null);
+  const htmlEditorRef = useRef(null);
+  const cssEditorRef = useRef(null);
+  const jsEditorRef = useRef(null);
+  const aiEditorRef = useRef(null);
 
   useEffect(() => {
     const loadSite = async () => {
@@ -167,6 +172,58 @@ export default function Editor() {
   useEffect(() => {
     updatePreview();
   }, [html, css, js]);
+
+  // Keyboard shortcut for Cmd+K / Ctrl+K
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        // Only trigger if in code editor
+        if (activeTab === 'html' || activeTab === 'css' || activeTab === 'js') {
+          e.preventDefault();
+          const editor = activeTab === 'html' ? htmlEditorRef.current : activeTab === 'css' ? cssEditorRef.current : jsEditorRef.current;
+          
+          if (!editor || !aiEditorRef.current) return;
+          
+          // Get selection or current line
+          const selection = editor.getSelection();
+          let selectedText = '';
+          let startLine = 0;
+          let endLine = 0;
+          let baseIndentation = '';
+          
+          if (selection && !selection.isEmpty()) {
+            selectedText = editor.getModel().getValueInRange(selection);
+            startLine = selection.startLineNumber - 1;
+            endLine = selection.endLineNumber - 1;
+            
+            const firstLineContent = editor.getModel().getLineContent(selection.startLineNumber);
+            const match = firstLineContent.match(/^(\s*)/);
+            baseIndentation = match ? match[1] : '';
+          } else {
+            // User is on a line, get current line
+            const position = editor.getPosition();
+            if (position) {
+              const lineNumber = position.lineNumber - 1;
+              const lineContent = editor.getModel().getLineContent(position.lineNumber);
+              selectedText = lineContent;
+              startLine = lineNumber;
+              endLine = lineNumber;
+              
+              // Get the indentation of the current line
+              const match = lineContent.match(/^(\s*)/);
+              baseIndentation = match ? match[1] : '';
+            }
+          }
+          
+          // Open dialog with proper positioning
+          aiEditorRef.current.openAiEditDialog(editor, startLine, endLine, selectedText, baseIndentation);
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [activeTab]);
 
   useEffect(() => {
     const calculateScale = () => {
@@ -319,8 +376,73 @@ export default function Editor() {
     }
   };
 
-  const handleEditorDidMount = (editor, monaco) => {
+  const handleEditorDidMount = (editor, monaco, tab) => {
     window.monaco = monaco;
+    // Store editor reference based on tab
+    if (tab === 'html') {
+      htmlEditorRef.current = editor;
+    } else if (tab === 'css') {
+      cssEditorRef.current = editor;
+    } else if (tab === 'js') {
+      jsEditorRef.current = editor;
+    }
+    
+    // Register Cmd+K / Ctrl+K command in Monaco
+    const commandId = `ai-edit-${tab}`;
+    editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyK, () => {
+      // Get selection or current line
+      const selection = editor.getSelection();
+      let selectedText = '';
+      let startLine = 0;
+      let endLine = 0;
+      let baseIndentation = '';
+      
+      if (selection && !selection.isEmpty()) {
+        // User has selected text
+        selectedText = editor.getModel().getValueInRange(selection);
+        startLine = selection.startLineNumber - 1; // Convert to 0-based
+        endLine = selection.endLineNumber - 1;
+        
+        // Get the indentation of the first line
+        const firstLineContent = editor.getModel().getLineContent(selection.startLineNumber);
+        const match = firstLineContent.match(/^(\s*)/);
+        baseIndentation = match ? match[1] : '';
+      } else {
+        // User is on a line, get current line
+        const position = editor.getPosition();
+        if (position) {
+          const lineNumber = position.lineNumber - 1; // Convert to 0-based
+          const lineContent = editor.getModel().getLineContent(position.lineNumber);
+          selectedText = lineContent;
+          startLine = lineNumber;
+          endLine = lineNumber;
+          
+          // Get the indentation of the current line
+          const match = lineContent.match(/^(\s*)/);
+          baseIndentation = match ? match[1] : '';
+        }
+      }
+      
+      // Open dialog with proper positioning
+      if (aiEditorRef.current) {
+        aiEditorRef.current.openAiEditDialog(editor, startLine, endLine, selectedText, baseIndentation);
+      }
+    });
+    
+    // Add click handler to close AI edit dialog when user clicks in editor
+    editor.onMouseDown(() => {
+      if (aiEditorRef.current && aiEditorRef.current.isOpen()) {
+        aiEditorRef.current.closeAiEditDialog();
+      }
+    });
+    
+    // Also close on focus (when user clicks into editor)
+    editor.onDidFocusEditorText(() => {
+      if (aiEditorRef.current && aiEditorRef.current.isOpen()) {
+        aiEditorRef.current.closeAiEditDialog();
+      }
+    });
+    
     // Load and set theme if not already loaded
     fetch('/monaco_shortsites.json')
       .then(response => response.json())
@@ -585,6 +707,16 @@ export default function Editor() {
       .replace(/'/g, "&#039;");
   };
 
+  const handleCodeChange = (tab, newValue) => {
+    if (tab === 'html') {
+      setHtml(newValue);
+    } else if (tab === 'css') {
+      setCss(newValue);
+    } else {
+      setJs(newValue);
+    }
+  };
+
   const cycleViewportMode = () => {
     setViewportMode((prev) => {
       if (prev === 'full') return 'desktop';
@@ -668,13 +800,13 @@ export default function Editor() {
     <div className="flex flex-col h-screen bg-background text-foreground dark">
       <main ref={mainRef} className={`flex flex-1 overflow-hidden ${isRowLayout ? 'flex-row' : 'flex-col'}`}>
         <div 
-          className={`flex flex-col overflow-hidden p-4 ${isRowLayout ? 'pr-2' : 'pb-2'}`}
+          className={`flex flex-col overflow-hidden p-4 ${isRowLayout ? 'pr-0.5' : 'pb-0.5'}`}
           style={isRowLayout ? { width: `${splitPosition}%` } : { height: `${splitPosition}%` }}
         >
           <div>
             <div className="flex items-center gap-2 w-full">
-              <a href='/' className='text-lg font-medium tracking-tight hover:text-neutral-300 transition'>shortsites</a>
-              <div className="inline-flex h-10 items-center justify-center rounded-xl rounded-b-none bg-muted p-1 text-muted-foreground">
+              <a href='/' className='text-lg font-medium mr-1 tracking-tight hover:text-neutral-300 transition'>shortsites</a>
+              <div className="inline-flex h-10 items-center justify-center rounded-xl rounded-b-none bg-secondary p-1 text-muted-foreground">
                 <button
                   onClick={() => setActiveTab('html')}
                   className={`inline-flex items-center justify-center whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-normal ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 flex gap-2 ${
@@ -709,7 +841,7 @@ export default function Editor() {
                   JavaScript
                 </button>
               </div>
-              <div className="inline-flex h-10 items-center justify-center rounded-xl rounded-b-none bg-muted p-1 text-muted-foreground">
+              <div className="inline-flex h-10 items-center justify-center rounded-xl rounded-b-none bg-secondary p-1 text-muted-foreground">
                 <button
                   onClick={() => setActiveTab('ai')}
                   className={`inline-flex items-center justify-center whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-normal ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 flex gap-2 ${
@@ -790,7 +922,7 @@ export default function Editor() {
                 value={html}
                 onChange={(value) => setHtml(value || '')}
                 options={commonOptions}
-                onMount={handleEditorDidMount}
+                onMount={(editor, monaco) => handleEditorDidMount(editor, monaco, 'html')}
               />
             </div>
           )}
@@ -803,7 +935,7 @@ export default function Editor() {
                 value={css}
                 onChange={(value) => setCss(value || '')}
                 options={commonOptions}
-                onMount={handleEditorDidMount}
+                onMount={(editor, monaco) => handleEditorDidMount(editor, monaco, 'css')}
               />
             </div>
           )}
@@ -816,17 +948,17 @@ export default function Editor() {
                 value={js}
                 onChange={(value) => setJs(value || '')}
                 options={commonOptions}
-                onMount={handleEditorDidMount}
+                onMount={(editor, monaco) => handleEditorDidMount(editor, monaco, 'js')}
               />
             </div>
           )}
 
           {activeTab === 'ai' && (
             <div className="flex-1 overflow-hidden rounded-xl py-1 bg-secondary">
-              <div className="w-full h-full bg-muted rounded shadow-md flex flex-col">
+              <div className="w-full h-full bg-secondary rounded shadow-md flex flex-col">
                 <div
                   ref={chatMessagesRef}
-                  className="flex-grow overflow-y-auto p-3 space-y-2 text-sm text-foreground"
+                  className="flex-grow overflow-y-auto p-3 space-yl-2 text-sm text-foreground"
                 ></div>
                 <div className="p-2 border-t border-border flex">
                   <input
@@ -858,19 +990,19 @@ export default function Editor() {
           onPointerDown={handleResizerPointerDown}
           onPointerMove={handleResizerPointerMove}
           onPointerUp={handleResizerPointerUp}
-          className={`bg-border/50 hover:bg-border transition-colors flex items-center justify-center group relative z-10 ${
+          className={`transition-colors flex items-center justify-center group relative z-10 ${
             isRowLayout ? 'w-2 cursor-col-resize' : 'h-2 cursor-row-resize'
           }`}
         >
           <div
-            className={`absolute bg-muted-foreground/40 group-hover:bg-muted-foreground/80 transition-colors rounded-full ${
+            className={`absolute bg-muted-foreground/20 group-hover:bg-muted-foreground/50 transition-colors rounded-full ${
               isRowLayout ? 'w-0.5 h-12' : 'h-0.5 w-12'
             }`}
           />
         </div>
 
         <div 
-          className={`flex flex-col overflow-hidden p-4 ${isRowLayout ? 'pl-2' : 'pt-2'} relative`}
+          className={`flex flex-col overflow-hidden p-4 ${isRowLayout ? 'pl-0.5' : 'pt-0.5'} relative`}
           style={isRowLayout ? { width: `${100 - splitPosition}%` } : { height: `${100 - splitPosition}%` }}
         >
           <div 
@@ -997,6 +1129,8 @@ export default function Editor() {
           </div>
         </DialogContent>
       </Dialog>
+
+      <AiEditor ref={aiEditorRef} htmlEditorRef={htmlEditorRef} cssEditorRef={cssEditorRef} jsEditorRef={jsEditorRef} activeTab={activeTab} html={html} css={css} js={js} onCodeChange={handleCodeChange} />
     </div>
   );
 }

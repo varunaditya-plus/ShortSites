@@ -1,24 +1,55 @@
 import { createClient } from '@supabase/supabase-js';
 
 function getEnvVar(name) {
-  return process.env[`NEXT_PUBLIC_${name}`] || process.env[name] || '';
+  // Check both NEXT_PUBLIC_ prefix and direct name
+  // In browser, only NEXT_PUBLIC_ vars are available
+  // On server, both are available
+  if (typeof window !== 'undefined') {
+    // Client-side: only NEXT_PUBLIC_ vars are available
+    return process.env[`NEXT_PUBLIC_${name}`] || '';
+  } else {
+    // Server-side: check both
+    return process.env[`NEXT_PUBLIC_${name}`] || process.env[name] || '';
+  }
 }
 
-// Get env vars at module load time
-const SUPABASE_URL = getEnvVar('SUPABASE_URL');
-const SUPABASE_KEY = getEnvVar('SUPABASE_KEY');
+// Lazy client creation - checks env vars at runtime
+let supabaseClient = null;
 
-// Create client with fallback to placeholders during build
-// At runtime, GCP will provide the actual env vars
-const createSupabaseClient = () => {
-  const url = SUPABASE_URL || 'https://placeholder.supabase.co';
-  const key = SUPABASE_KEY || 'placeholder-key';
-  return createClient(url, key);
+const getSupabaseClient = () => {
+  if (!supabaseClient) {
+    // Get env vars at runtime (lazy evaluation)
+    const url = getEnvVar('SUPABASE_URL');
+    const key = getEnvVar('SUPABASE_KEY');
+    
+    // Check if we have valid values (not empty and not placeholders)
+    const hasValidUrl = url && url !== '' && url !== 'https://placeholder.supabase.co';
+    const hasValidKey = key && key !== '' && key !== 'placeholder-key';
+    
+    if (!hasValidUrl || !hasValidKey) {
+      console.error('Supabase environment variables not configured properly.');
+      console.error('URL:', hasValidUrl ? '✓' : '✗', url || 'missing');
+      console.error('KEY:', hasValidKey ? '✓' : '✗', key ? 'present' : 'missing');
+      throw new Error('Supabase configuration missing. Please set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_KEY');
+    }
+    
+    supabaseClient = createClient(url, key);
+  }
+  return supabaseClient;
 };
 
 // Client-side Supabase client
-// Use placeholder during build, real values at runtime
-export const supabase = createSupabaseClient();
+// Lazy initialization - checks env vars at runtime when first accessed
+export const supabase = new Proxy({}, {
+  get(target, prop) {
+    const client = getSupabaseClient();
+    const value = client[prop];
+    if (typeof value === 'function') {
+      return value.bind(client);
+    }
+    return value;
+  }
+});
 
 // Server-side Supabase client (for API routes)
 export function createServerClient() {

@@ -160,3 +160,5 @@ select {
 .monaco-editor .focused .selectionHighlight {
     background-color: #33333b36 !important;
 }
+
+* { scrollbar-width: none; }
