@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useSearchParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { SparkleIcon, FloppyDiskIcon, SquareHalfBottomIcon, SquareHalfIcon, KeyIcon, DeviceMobileIcon, DesktopIcon, ArrowsOutIcon } from '@phosphor-icons/react';
+import { SparkleIcon, FloppyDiskIcon, SquareHalfBottomIcon, SquareHalfIcon, KeyIcon, DeviceMobileIcon, DesktopIcon, ArrowsOutIcon, MagnifyingGlassIcon } from '@phosphor-icons/react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { IoLogoHtml5 } from 'react-icons/io';
@@ -11,6 +11,7 @@ import { IoLogoJavascript } from 'react-icons/io5';
 import { IoLogoCss3 } from 'react-icons/io';
 import { setEditAuth, addValidatedCode } from '@/lib/auth';
 import AiEditor from '@/components/aieditor';
+import InspectPopup from '@/components/inspectpopup';
 import '../styles/editor.css';
 
 const MonacoEditor = dynamic(() => import('@monaco-editor/react'), { ssr: false });
@@ -76,6 +77,11 @@ export default function Editor() {
   const [viewportMode, setViewportMode] = useState('full'); // 'full', 'desktop', 'mobile'
   const [viewportScale, setViewportScale] = useState(1);
   const [splitPosition, setSplitPosition] = useState(50); // Percentage (0-100)
+  const [showInspectPopup, setShowInspectPopup] = useState(false);
+  const [inspectPopupPosition, setInspectPopupPosition] = useState({ x: 100, y: 100 });
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+  const inspectPopupRef = useRef(null);
   const previewFrameRef = useRef(null);
   const chatMessagesRef = useRef(null);
   const previewContainerRef = useRef(null);
@@ -777,6 +783,186 @@ export default function Editor() {
     theme: 'shortsites',
   };
 
+  // Drag handlers for inspect popup
+  const handleInspectPopupMouseDown = (e) => {
+    const header = e.target.closest('.inspect-header');
+    const isButton = e.target.closest('button');
+    
+    if (header && !isButton) {
+      setIsDragging(true);
+      const rect = inspectPopupRef.current?.getBoundingClientRect();
+      if (rect) {
+        setDragOffset({
+          x: e.clientX - rect.left,
+          y: e.clientY - rect.top,
+        });
+      }
+    }
+  };
+
+  useEffect(() => {
+    const handleMouseMove = (e) => {
+      if (isDragging && inspectPopupRef.current) {
+        const newX = e.clientX - dragOffset.x;
+        const newY = e.clientY - dragOffset.y;
+        setInspectPopupPosition({ x: newX, y: newY });
+      }
+    };
+
+    const handleMouseUp = () => {
+      setIsDragging(false);
+    };
+
+    if (isDragging) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+      return () => {
+        document.removeEventListener('mousemove', handleMouseMove);
+        document.removeEventListener('mouseup', handleMouseUp);
+      };
+    }
+  }, [isDragging, dragOffset]);
+
+  // Parse HTML to create DOM tree structure
+  const parseHTMLToTree = (htmlString) => {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(htmlString, 'text/html');
+    
+    const createNode = (element, path = '') => {
+      if (!element || element.nodeType === 3) return null; // Skip text nodes for now
+      
+      const tagName = element.tagName?.toLowerCase() || element.nodeName?.toLowerCase();
+      if (!tagName) return null;
+      
+      const currentPath = path ? `${path} > ${tagName}` : tagName;
+      const index = Array.from(element.parentNode?.children || []).indexOf(element);
+      const uniquePath = `${currentPath}:nth-child(${index + 1})`;
+      
+      const node = {
+        tagName,
+        attributes: {},
+        children: [],
+        path: uniquePath,
+        element: element,
+      };
+      
+      // Get attributes
+      if (element.attributes) {
+        Array.from(element.attributes).forEach(attr => {
+          node.attributes[attr.name] = attr.value;
+        });
+      }
+      
+      // Get children
+      Array.from(element.children).forEach(child => {
+        const childNode = createNode(child, uniquePath);
+        if (childNode) {
+          node.children.push(childNode);
+        }
+      });
+      
+      return node;
+    };
+    
+    return createNode(doc.documentElement) || createNode(doc.body);
+  };
+
+  // Clear highlights in iframe
+  const clearHighlights = () => {
+    if (!previewFrameRef.current?.contentWindow) return;
+    
+    try {
+      const iframeWindow = previewFrameRef.current.contentWindow;
+      const iframeDocument = iframeWindow.document;
+      
+      iframeDocument.querySelectorAll('.inspect-highlight').forEach(el => {
+        el.classList.remove('inspect-highlight');
+        el.style.outline = '';
+        el.style.outlineOffset = '';
+      });
+    } catch (e) {
+      console.error('Error clearing highlights:', e);
+    }
+  };
+
+  // Highlight element in iframe
+  const highlightElementInIframe = (tagName, attributes = {}) => {
+    if (!previewFrameRef.current?.contentWindow) return;
+    
+    try {
+      const iframeWindow = previewFrameRef.current.contentWindow;
+      const iframeDocument = iframeWindow.document;
+      
+      clearHighlights();
+      
+      try {
+        let selector = tagName;
+        
+        if (attributes.id) {
+          selector = `#${attributes.id}`;
+        } else if (attributes.class) {
+          const classes = attributes.class.split(' ').filter(c => c).map(c => `.${c}`).join('');
+          selector = `${tagName}${classes}`;
+        }
+        
+        const elements = iframeDocument.querySelectorAll(selector);
+        if (elements.length > 0) {
+          const targetElement = elements[0];
+          targetElement.classList.add('inspect-highlight');
+          targetElement.style.outline = '2px solid #4A9EFF';
+          targetElement.style.outlineOffset = '2px';
+        } else {
+          // Fallback: try to find by tag name only
+          const allElements = iframeDocument.querySelectorAll(tagName);
+          if (allElements.length > 0) {
+            allElements[0].classList.add('inspect-highlight');
+            allElements[0].style.outline = '2px solid #4A9EFF';
+            allElements[0].style.outlineOffset = '2px';
+          }
+        }
+      } catch (e) {
+        console.log('Could not highlight element:', e);
+      }
+    } catch (e) {
+      console.error('Error highlighting element:', e);
+    }
+  };
+
+  // Inject highlight styles into iframe
+  useEffect(() => {
+    if (previewFrameRef.current?.contentWindow && showInspectPopup) {
+      try {
+        const iframeDocument = previewFrameRef.current.contentWindow.document;
+        if (!iframeDocument.getElementById('inspect-styles')) {
+          const style = iframeDocument.createElement('style');
+          style.id = 'inspect-styles';
+          style.textContent = `
+            .inspect-highlight {
+              outline: 2px solid #4A9EFF !important;
+              outline-offset: 2px !important;
+            }
+          `;
+          iframeDocument.head.appendChild(style);
+        }
+      } catch (e) {
+        console.error('Error injecting styles:', e);
+      }
+    }
+  }, [showInspectPopup, html, css, js]);
+
+  // Get DOM tree from current HTML
+  const getDOMTree = () => {
+    try {
+      let content = html.replace(/<\/(?!\w+>)/g, '');
+      content = content.replace(/<style do-not-remove>[\s\S]*?<\/style>/, `<style>${css}</style>`);
+      content = content.replace(/<script do-not-remove>[\s\S]*?<\/script>/, `<script>${js}</script>`);
+      return parseHTMLToTree(content);
+    } catch (e) {
+      console.error('Error parsing HTML:', e);
+      return null;
+    }
+  };
+
   if (loading) {
     return (
       <div className="fixed inset-0 bg-background z-50 flex items-center justify-center">
@@ -1035,14 +1221,28 @@ export default function Editor() {
               ></iframe>
             </div>
           </div>
-          <button
-            onClick={cycleViewportMode}
-            className={`absolute ${isRowLayout ? 'bottom-4 right-4' : 'bottom-4 left-4'} inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium bg-secondary text-secondary-foreground hover:bg-secondary/80 border border-border shadow-sm transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 z-10`}
-            title={`Current: ${getViewportLabel()}. Click to cycle viewport size.`}
-          >
-            {getViewportIcon()}
-            <span>{getViewportLabel()}</span>
-          </button>
+          <div className={`absolute ${isRowLayout ? 'bottom-6 right-6' : 'bottom-6 left-6'} flex gap-2 z-10`}>
+            <button
+              onClick={cycleViewportMode}
+              className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium bg-background text-secondary-foreground hover:bg-muted-foreground/20 border border-border shadow-sm transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 cursor-pointer"
+              title={`Current: ${getViewportLabel()}. Click to cycle viewport size.`}
+            >
+              {getViewportIcon()}
+              <span>{getViewportLabel()}</span>
+            </button>
+            <button
+              onClick={() => setShowInspectPopup(!showInspectPopup)}
+              className={`inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium border border-border shadow-sm transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 cursor-pointer ${
+                showInspectPopup 
+                  ? 'bg-background text-secondary-foreground hover:bg-muted-foreground/20' 
+                  : 'bg-background text-secondary-foreground hover:bg-muted-foreground/20'
+              }`}
+              title="Inspect page elements"
+            >
+              <MagnifyingGlassIcon size={16} />
+              <span>Inspect page</span>
+            </button>
+          </div>
         </div>
       </main>
 
@@ -1122,6 +1322,10 @@ export default function Editor() {
       </Dialog>
 
       <AiEditor ref={aiEditorRef} htmlEditorRef={htmlEditorRef} cssEditorRef={cssEditorRef} jsEditorRef={jsEditorRef} activeTab={activeTab} html={html} css={css} js={js} onCodeChange={handleCodeChange} />
+
+      {showInspectPopup && (
+        <InspectPopup ref={inspectPopupRef} position={inspectPopupPosition} onMouseDown={handleInspectPopupMouseDown} onClose={() => { clearHighlights(); setShowInspectPopup(false); }} html={html} css={css} js={js} />
+      )}
     </div>
   );
 }
