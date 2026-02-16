@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase';
 import { cookies } from 'next/headers';
+import { getAccessCodeFromSitesCookie } from '@/lib/auth-server';
 
 export async function POST(request, { params }) {
   try {
@@ -12,15 +13,18 @@ export async function POST(request, { params }) {
       return NextResponse.json({ success: false, message: 'Password required' }, { status: 400 });
     }
 
-    // Check authorization
     const cookieStore = await cookies();
-    const isAuthorized = cookieStore.get(`edit_auth_${code}`)?.value === 'true';
-
-    if (!isAuthorized) {
+    const accessCode = getAccessCodeFromSitesCookie(cookieStore, code);
+    if (!accessCode) {
       return NextResponse.json({ success: false, message: 'Not authorized' }, { status: 403 });
     }
 
     const supabase = createServerClient();
+    const { data: site } = await supabase.from('shortsites').select('password_hash').eq('code', code).single();
+    if (!site || site.password_hash !== accessCode) {
+      return NextResponse.json({ success: false, message: 'Not authorized' }, { status: 403 });
+    }
+
     const response = await supabase.from('shortsites').update({
       password_hash: password
     }).eq('code', code);

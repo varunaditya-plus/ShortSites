@@ -35,58 +35,61 @@ export async function GET(request, { params }) {
     const isFullDocument = html.trim().match(/^\s*<!DOCTYPE/i) || 
                           (html.includes('<html') && html.includes('<head') && html.includes('<body'));
     
-    // Function to get cookie value
     const getCookieScript = `
-      function getCookie(name) {
-        const value = "; " + document.cookie;
-        const parts = value.split("; " + name + "=");
-        if (parts.length === 2) return parts.pop().split(";").shift();
-        return null;
-      }
-      function getLocalStorage(key) {
+      function getSites() {
         try {
-          return localStorage.getItem(key);
+          var raw = document.cookie.split(';').map(function(s) { return s.trim(); }).filter(function(s) { return s.indexOf('sites=') === 0; })[0];
+          if (!raw) return [];
+          raw = decodeURIComponent(raw.split('=').slice(1).join('='));
+          var arr = JSON.parse(raw);
+          return Array.isArray(arr) ? arr : [];
         } catch (e) {
-          return null;
+          return [];
         }
+      }
+      function getStoredAccessCode(sitecode) {
+        var sites = getSites();
+        var entry = sites.find(function(e) { return e.sitecode === sitecode; });
+        return entry ? entry.accesscode : null;
+      }
+      function setStoredAccessCode(sitecode, accesscode) {
+        var sites = getSites();
+        var idx = sites.findIndex(function(e) { return e.sitecode === sitecode; });
+        if (idx >= 0) sites[idx].accesscode = accesscode;
+        else sites.push({ sitecode: sitecode, accesscode: accesscode });
+        document.cookie = 'sites=' + encodeURIComponent(JSON.stringify(sites)) + '; path=/; max-age=31536000';
+      }
+      function removeStoredAccessCode(sitecode) {
+        var sites = getSites().filter(function(e) { return e.sitecode !== sitecode; });
+        document.cookie = 'sites=' + encodeURIComponent(JSON.stringify(sites)) + '; path=/; max-age=31536000';
       }
       function handleEditClick() {
-        const editAuth = getCookie('edit_auth_${code}');
-        const validatedCodes = getCookie('validated_codes');
-        let hasAccess = false;
-        
-        // Check if edit_auth cookie is set
-        if (editAuth === 'true') {
-          hasAccess = true;
+        var sitecode = '${code}';
+        var key = getStoredAccessCode(sitecode);
+        if (!key) {
+          key = prompt('Enter the access key to edit this site:');
+          if (key === null) return;
+          key = (key || '').trim();
+          if (!key) return;
         }
-        
-        // Check if code is in validated_codes
-        if (!hasAccess && validatedCodes) {
-          try {
-            const codes = JSON.parse(validatedCodes);
-            if (codes.includes('${code}')) {
-              hasAccess = true;
+        fetch('/v/' + sitecode, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ accessCode: key }),
+          credentials: 'same-origin'
+        }).then(function(r) { return r.json().then(function(j) { return { ok: r.ok, j: j }; }).catch(function() { return { ok: r.ok, j: {} }; }); })
+          .then(function(result) {
+            if (result.ok && result.j.ok) {
+              setStoredAccessCode(sitecode, key);
+              window.location.href = '/edit/' + sitecode;
+            } else {
+              removeStoredAccessCode(sitecode);
+              alert(result.j.message || 'Invalid access code.');
             }
-          } catch (e) {
-            // Ignore parse errors
-          }
-        }
-        
-        // If user has access via cookies, go directly to edit page
-        if (hasAccess) {
-          window.location.href = '/edit/${code}';
-          return;
-        }
-        
-        // Check localStorage for access code
-        const storedCode = getLocalStorage('access_code_${code}');
-        if (storedCode) {
-          window.location.href = '/edit/${code}?code=' + encodeURIComponent(storedCode);
-          return;
-        }
-        
-        // Navigate to edit page (will prompt for code if not authorized)
-        window.location.href = '/edit/${code}';
+          }).catch(function() {
+            removeStoredAccessCode(sitecode);
+            alert('Could not verify. Try again.');
+          });
       }
     `;
     

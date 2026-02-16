@@ -59,10 +59,7 @@ export default function Home() {
                   <Link href={`/s/${site.code}`} className="hover:underline">
                     View
                   </Link>
-                  <Link 
-                    href={`/edit/${site.code}?code=${encodeURIComponent(site.password_hash || '')}`}
-                    className="hover:underline"
-                  >
+                  <Link href={`/edit/${site.code}`} className="hover:underline">
                     Edit
                   </Link>
                 </div>

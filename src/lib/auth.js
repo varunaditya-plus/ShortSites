@@ -1,56 +1,58 @@
-import { getCookie, setCookie, deleteCookie } from 'cookies-next';
+import { getCookie, setCookie } from 'cookies-next';
 
-const VALIDATED_CODES_KEY = 'validated_codes';
-const EDIT_AUTH_PREFIX = 'edit_auth_';
+const SITES_COOKIE = 'sites';
+const COOKIE_MAX_AGE = 60 * 60 * 24 * 365; // 1 year
 
 /**
- * Get validated site codes from cookies
+ * Get sites from cookie: [{ sitecode, accesscode }, ...]
  */
-export function getValidatedCodes() {
-  const codes = getCookie(VALIDATED_CODES_KEY);
-  if (!codes) return [];
+export function getSites() {
+  const raw = getCookie(SITES_COOKIE);
+  if (!raw) return [];
   try {
-    return JSON.parse(codes);
+    const arr = JSON.parse(raw);
+    return Array.isArray(arr) ? arr : [];
   } catch {
     return [];
   }
 }
 
 /**
- * Add a validated code to the list
+ * Get list of site codes the user has access to (for home page list)
  */
-export function addValidatedCode(code) {
-  const codes = getValidatedCodes();
-  if (!codes.includes(code)) {
-    codes.push(code);
-    setCookie(VALIDATED_CODES_KEY, JSON.stringify(codes), {
-      maxAge: 60 * 60 * 24 * 365, // 1 year
-      path: '/',
-    });
-  }
+export function getValidatedCodes() {
+  return getSites().map((s) => s.sitecode);
 }
 
 /**
- * Check if user is authorized to edit a site
+ * Get access code for a site from the sites cookie
  */
-export function isAuthorizedToEdit(code) {
-  return getCookie(`${EDIT_AUTH_PREFIX}${code}`) === 'true';
+export function getAccessCodeForSite(code) {
+  const entry = getSites().find((e) => e.sitecode === code);
+  return entry ? entry.accesscode : null;
 }
 
 /**
- * Set authorization for editing a site
+ * Add or update a site in the sites cookie
  */
-export function setEditAuth(code, authorized = true) {
-  setCookie(`${EDIT_AUTH_PREFIX}${code}`, authorized ? 'true' : 'false', {
-    maxAge: 60 * 60 * 24 * 365, // 1 year
+export function addOrUpdateSite(sitecode, accesscode) {
+  const sites = getSites();
+  const idx = sites.findIndex((e) => e.sitecode === sitecode);
+  if (idx >= 0) sites[idx].accesscode = accesscode;
+  else sites.push({ sitecode, accesscode });
+  setCookie(SITES_COOKIE, JSON.stringify(sites), {
+    maxAge: COOKIE_MAX_AGE,
     path: '/',
   });
 }
 
 /**
- * Clear authorization for editing a site
+ * Remove a site from the sites cookie
  */
-export function clearEditAuth(code) {
-  deleteCookie(`${EDIT_AUTH_PREFIX}${code}`, { path: '/' });
+export function removeSite(sitecode) {
+  const sites = getSites().filter((e) => e.sitecode !== sitecode);
+  setCookie(SITES_COOKIE, JSON.stringify(sites), {
+    maxAge: COOKIE_MAX_AGE,
+    path: '/',
+  });
 }
-

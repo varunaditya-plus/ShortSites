@@ -22,32 +22,12 @@ export async function POST(request, { params }) {
     const siteData = response.data[0];
 
     if (siteData.password_hash === accessCode) {
-      // Get existing validated codes
       const cookieStore = await cookies();
-      const validatedCodes = cookieStore.get('validated_codes')?.value;
-      let codes = [];
-      if (validatedCodes) {
-        try {
-          codes = JSON.parse(validatedCodes);
-        } catch (e) {
-          codes = [];
-        }
-      }
-      if (!codes.includes(code)) {
-        codes.push(code);
-      }
+      const { mergeSitesCookie } = await import('@/lib/auth-server');
+      const sites = mergeSitesCookie(cookieStore, code, accessCode);
 
-      // Create response with cookies
       const responseData = NextResponse.json({ success: true });
-
-      // Set edit auth cookie
-      responseData.cookies.set(`edit_auth_${code}`, 'true', {
-        maxAge: 60 * 60 * 24 * 365,
-        path: '/',
-      });
-
-      // Set validated codes cookie
-      responseData.cookies.set('validated_codes', JSON.stringify(codes), {
+      responseData.cookies.set('sites', JSON.stringify(sites), {
         maxAge: 60 * 60 * 24 * 365,
         path: '/',
       });

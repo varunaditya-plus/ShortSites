@@ -20,7 +20,7 @@ export async function GET(request) {
     const supabase = createServerClient();
     const { data, error } = await supabase
       .from('shortsites')
-      .select('*')
+      .select('code, html, css, javascript')
       .in('code', codes);
 
     if (error) {

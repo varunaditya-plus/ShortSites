@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { IoLogoHtml5 } from 'react-icons/io';
 import { IoLogoJavascript } from 'react-icons/io5';
 import { IoLogoCss3 } from 'react-icons/io';
-import { setEditAuth, addValidatedCode } from '@/lib/auth';
+import { addOrUpdateSite } from '@/lib/auth';
 import AiEditor from '@/components/aieditor';
 import InspectPopup from '@/components/inspectpopup';
 import '../styles/editor.css';
@@ -118,13 +118,10 @@ export default function Editor() {
 
         const data = result.data;
 
-        // If authorized (via access code or cookies), load the site
-        // Server handles setting auth cookies when access code is valid
+        // If authorized (via "sites" cookie or ?code=), load the site. Server sets "sites" cookie when needed.
         if (data.authorized) {
-          // Update client-side auth state (cookies are already set by server)
           if (accessCode) {
-            setEditAuth(code, true);
-            addValidatedCode(code);
+            addOrUpdateSite(code, accessCode);
           }
 
           setHtml(data.html || '');
